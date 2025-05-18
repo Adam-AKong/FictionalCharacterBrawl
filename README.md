@@ -1,9 +1,2 @@
-# Fictional Character Brawl Database Setup
-
-Team Member:
-Adam Kong
-Brian Kaplan
-Vic Grigoryev
-William
-
-Description to be updated.
+# CSC365GroupProject
+Creating a Backend API
