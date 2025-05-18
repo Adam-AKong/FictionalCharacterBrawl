@@ -10,8 +10,8 @@ load_dotenv(dotenv_path=find_dotenv(".env"), override=True)
 
 
 class Settings:
-    API_KEY: str | None = "brat"
-    POSTGRES_URI: str | None = "postgresql+psycopg://myuser:mypassword2@localhost:5433/mydatabase"
+    API_KEY: str | None = os.getenv("API_KEY")
+    POSTGRES_URI: str | None = os.getenv("POSTGRES_URI")
 
     def __init__(self):
         if not self.API_KEY:

@@ -1,12 +1,15 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 import sqlalchemy
 from src import database as db
 
-from src.api.models import Character, C_Review, CharacterMakeResponse, Franchise, FranchiseCharacterAssignment, Returned_Review, ReturnedCharacter
+from src.api.models import Character, CharacterMakeResponse, Franchise, FranchiseCharacterAssignment, Returned_Review, ReturnedCharacter
+from src.api import auth
 
-
-router = APIRouter(prefix="/character", tags=["Character"])
+router = APIRouter(
+    prefix="/character", 
+    tags=["Character"],
+    dependencies=[Depends(auth.get_api_key)],)
 
 
 

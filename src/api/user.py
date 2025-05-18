@@ -1,12 +1,16 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 import sqlalchemy
 from src import database as db
 from datetime import datetime
+from src.api import auth
 
 from src.api.models import User
 
-router = APIRouter(prefix="/user", tags=["User"])
+router = APIRouter(
+    prefix="/user", 
+    tags=["User"],
+    dependencies=[Depends(auth.get_api_key)],)
 
 
 

@@ -1,13 +1,15 @@
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 import sqlalchemy
 from src import database as db
+from src.api import auth
 
 from src.api.models import Franchise, FranchiseMakeResponse, Returned_Review
 
-router = APIRouter(prefix="/franchise", tags=["Franchise"])
-
-
+router = APIRouter(
+    prefix="/franchise", 
+    tags=["Franchise"],
+    dependencies=[Depends(auth.get_api_key)],)
 
 @router.get("/get/by_id/{franchise_id}", response_model=FranchiseMakeResponse)
 def get_franchise_by_id(franchise_id: int):
@@ -69,7 +71,8 @@ def make_franchise(franchise: Franchise):
     """
     Create a new franchise.
     """
-    
+
+    # We need to add later that there can only be 1 franchise
     with db.engine.begin() as connection:
         fran_id = connection.execute(
             sqlalchemy.text("""
@@ -82,6 +85,7 @@ def make_franchise(franchise: Franchise):
                 "description": franchise.description,
             },
         ).scalar_one()
+
     new_franchise = FranchiseMakeResponse(
         id = fran_id,
         name = franchise.name,
@@ -98,6 +102,7 @@ def make_franchise_review(user_id: int, franchise_id: int, comment: str):
     if not comment:
         raise HTTPException(status_code=400, detail="Comment cannot be empty")
 
+    # No issue with duplicate comments here, just franchises.
     with db.engine.begin() as connection:
         connection.execute(
             sqlalchemy.text("""
