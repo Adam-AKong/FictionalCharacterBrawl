@@ -19,7 +19,6 @@ def get_user(user_id: int):
     """
     Get User by ID.
     """
-    # Placeholder for actual database call
     with db.engine.begin() as connection:
         user = connection.execute(
             sqlalchemy.text("""
@@ -42,7 +41,6 @@ def get_user_by_name(username: str):
     """
     Get User by name.
     """
-    # Placeholder for actual database call
     with db.engine.begin() as connection:
         user = connection.execute(
             sqlalchemy.text("""
@@ -65,7 +63,6 @@ def make_user(name: str):
     """
     Make a new user.
     """
-    # Placeholder for actual database call
     if not name:
         raise HTTPException(status_code=400, detail="Name cannot be empty")
     # Save the user to the database

@@ -1,5 +1,6 @@
 from datetime import timedelta, datetime
 from math import pow
+import random
 
 import sqlalchemy
 from fastapi import APIRouter, HTTPException, status, Depends
@@ -45,8 +46,12 @@ def calculate_winner(connection, battle) -> int:
     ).one()
     
     # Calculate the winner based on the votes and character stats
-    character1_score = (character2.health / (character1.strength * character1.speed)) * (pow(0.9, battle.vote1))
-    character2_score = (character1.health / (character2.strength * character2.speed)) * (pow(0.9, battle.vote2))
+    # Lowest score wins. Votes are multiplied by a modifier to reduce the score
+    # More votes = lower score = more likely to win
+    vote_modifier = 0.9
+    
+    character1_score = (character2.health / (character1.strength * character1.speed)) * (pow(vote_modifier, battle.vote1))
+    character2_score = (character1.health / (character2.strength * character2.speed)) * (pow(vote_modifier, battle.vote2))
     if character1_score < character2_score:
         # Character 1 wins
         # Increase the rating of the winner
@@ -61,7 +66,7 @@ def calculate_winner(connection, battle) -> int:
             [{"id": battle.char1_id}]
         )
         return battle.char1_id
-    else:
+    elif character1_score > character2_score:
         # Character 2 wins
         # Increase the rating of the winner
         connection.execute(
@@ -75,6 +80,37 @@ def calculate_winner(connection, battle) -> int:
             [{"id": battle.char2_id}]
         )
         return battle.char2_id
+    else:
+        # It's a tie, randomize the winner
+        winner_id = battle.char1_id if random.randint(0, 1) == 0 else battle.char2_id
+        connection.execute(
+            sqlalchemy.text(
+                """
+                UPDATE character
+                SET rating = rating + 1
+                WHERE id = :id
+                """
+            ),
+            [{"id": winner_id}]
+        )
+        return winner_id
+        
+def update_winner(connection, battle):
+    """
+    Update the winner of a battle in the database.
+    """
+    winner = calculate_winner(connection, battle)
+    connection.execute(
+        sqlalchemy.text(
+            """
+            UPDATE battle
+            SET winner_id = :winner
+            WHERE id = :id
+            """
+        ),
+        [{"winner": winner, "id": battle.id}]
+    )
+    return winner
 
 @router.get("/get/battle/{battle_id}", response_model=BattleResult)
 def get_battle_result(battle_id: int):
@@ -86,7 +122,7 @@ def get_battle_result(battle_id: int):
             sqlalchemy.text(
                 """
                 SELECT *
-                FROM battle
+                FROM battle_with_votes
                 WHERE id = :id
                 """
             ),
@@ -109,17 +145,8 @@ def get_battle_result(battle_id: int):
         
         if battle.winner_id is None:
             # Calculate the winner if not already set
-            winner = calculate_winner(connection, battle)
-            connection.execute(
-                sqlalchemy.text(
-                    """
-                    UPDATE battle
-                    SET winner_id = :winner
-                    WHERE id = :id
-                    """
-                ),
-                [{"winner": winner, "id": battle.id}]
-            )
+            winner = update_winner(connection, battle)
+            
             return BattleResult(
                 battle_id=battle.id,
                 char1_id=battle.char1_id,
@@ -157,7 +184,7 @@ def character_participation(character_id: int):
             sqlalchemy.text(
                 """
                 SELECT *
-                FROM battle
+                FROM battle_with_votes
                 WHERE char1_id = :char OR char2_id = :char
                 """
             ),
@@ -179,17 +206,8 @@ def character_participation(character_id: int):
             # Check if the winner is set
             if r.winner_id is None and finished:
                 print("[DEBUG] Winner is not set, calculating winner")
-                winner = calculate_winner(connection, r)
-                connection.execute(
-                    sqlalchemy.text(
-                        """
-                        UPDATE battle
-                        SET winner_id = :winner
-                        WHERE id = :id
-                        """
-                    ),
-                    [{"winner": winner, "id": r.id}]
-                )
+                winner = update_winner(connection, r)
+                
                 print(f"[DEBUG] Winner of {r.id} calculated and appending battle result")
                 battles.append(
                     BattleResult(
@@ -252,7 +270,7 @@ def user_participation(user_id: int):
             sqlalchemy.text(
                 """
                 SELECT *
-                FROM battle
+                FROM battle_with_votes
                 WHERE user_id = :user
                 """
             ),
@@ -272,17 +290,8 @@ def user_participation(user_id: int):
             # Check if the winner is set
             if r.winner_id is None:
                 # Calculate the winner if not already set
-                winner = calculate_winner(connection, r)
-                connection.execute(
-                    sqlalchemy.text(
-                        """
-                        UPDATE battle
-                        SET winner_id = :winner
-                        WHERE id = :id
-                        """
-                    ),
-                    [{"winner": winner, "id": r.id}]
-                )
+                winner = update_winner(connection, r)
+                
                 # Append the battle result
                 battles.append(
                     BattleResult(
@@ -378,29 +387,6 @@ def battle_vote(user_id: int, battle_id: int, character_id: int):
                 [{"battle": battle_id,
                   "user": user_id}]
             )
-            # Update the vote count in the battle table
-            if character_ids.char1_id == character_id:
-                connection.execute(
-                    sqlalchemy.text(
-                        """
-                        UPDATE battle
-                        SET vote1 = vote1 + 1
-                        WHERE id = :id
-                        """
-                    ),
-                    [{"id": battle_id}]
-                )
-            else:
-                connection.execute(
-                    sqlalchemy.text(
-                        """
-                        UPDATE battle
-                        SET vote2 = vote2 + 1
-                        WHERE id = :id
-                        """
-                    ),
-                    [{"id": battle_id}]
-                )
         else:
             raise HTTPException(status_code=400, detail="Character not in battle")
 

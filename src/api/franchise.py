@@ -98,7 +98,6 @@ def make_franchise_review(user_id: int, franchise_id: int, comment: str):
     """
     Make a review for a franchise.
     """
-    # Placeholder for actual database call
     if not comment:
         raise HTTPException(status_code=400, detail="Comment cannot be empty")
 
