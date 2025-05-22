@@ -1,10 +1,8 @@
-from fastapi import FastAPI
-from src.api import character, franchise, battle, user
+import uvicorn
 
-
-app = FastAPI()
-
-app.include_router(character.router)
-app.include_router(franchise.router)
-app.include_router(battle.router)
-app.include_router(user.router)
+if __name__ == "__main__":
+    config = uvicorn.Config(
+        "src.api.server:app", port=3000, log_level="info", reload=True, env_file=".env"
+    )
+    server = uvicorn.Server(config)
+    server.run()
