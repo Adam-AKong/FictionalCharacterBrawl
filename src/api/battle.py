@@ -112,7 +112,7 @@ def update_winner(connection, battle):
     )
     return winner
 
-@router.get("/get/battle/{battle_id}", response_model=BattleResult)
+@router.get("/battle/{battle_id}", response_model=BattleResult)
 def get_battle_result(battle_id: int):
     """
     Get the result of a battle by its ID.
@@ -171,7 +171,7 @@ def get_battle_result(battle_id: int):
             finished=True
         )
 
-@router.get("/get/character/{character_id}", response_model=list[BattleResult])
+@router.get("/character/{character_id}", response_model=list[BattleResult])
 def character_participation(character_id: int):
     """
     Get a list of battles a character has fought in.
@@ -258,7 +258,7 @@ def character_participation(character_id: int):
     return battles
             
 
-@router.get("/get/user/{user_id}", response_model=list[BattleResult])
+@router.get("/user/{user_id}", response_model=list[BattleResult])
 def user_participation(user_id: int):
     """
     Get a list of battles a user has participated in.

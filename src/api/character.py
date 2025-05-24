@@ -1,9 +1,10 @@
+import re
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 import sqlalchemy
 from src import database as db
 
-from src.api.models import Character, CharacterMakeResponse, Franchise, FranchiseCharacterAssignment, Returned_Review, ReturnedCharacter
+from src.api.models import Character, CharacterMakeResponse, Franchise, FranchiseCharacterAssignment, ReturnedCharacter
 from src.api import auth
 
 router = APIRouter(
@@ -11,9 +12,9 @@ router = APIRouter(
     tags=["Character"],
     dependencies=[Depends(auth.get_api_key)],)
 
+USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_-]+$")
 
-
-@router.get("/get/by_id/{character_id}", response_model=ReturnedCharacter)
+@router.get("/by_id/{character_id}", response_model=ReturnedCharacter)
 def get_character_by_id(character_id: int):
     """
     Get character by ID.
@@ -80,33 +81,7 @@ def get_user_characters(user_id: int):
 
 
 
-@router.get("/get_review/{character_id}", response_model=list[Returned_Review])
-def get_character_review(character_id: int):
-    """
-    Get all reviews for a given character referencing its id.
-    """
-    with db.engine.begin() as connection:
-        comments = connection.execute(
-            sqlalchemy.text("""
-                SELECT user_id, comment
-                FROM c_review
-                WHERE char_id = :char_id
-            """),
-            {
-                "char_id": character_id
-            }
-        ).all()
 
-    all_comments = []
-    for comment in comments:
-        all_comments.append(
-            Returned_Review(
-                user_id = comment.user_id,
-                comment = comment.comment
-            )
-        )
-
-    return all_comments
 
 
 @router.get("/leaderboard", response_model=list[CharacterMakeResponse])
@@ -148,7 +123,22 @@ def make_character(user_id: int, character: Character, franchiselist: list[Franc
     """
     Create a new character.
     """
-    # Placeholder for actual database call
+    # Wall of Contraints on what a valid input is lol
+    if not USERNAME_REGEX.fullmatch(character.name):
+        raise HTTPException(status_code=400, detail="Character Name must only contain letters, numbers, dashes, or underscores")     
+    if not character.name:
+        raise HTTPException(status_code=400, detail="Character name cannot be empty")
+    if not character.description:
+        raise HTTPException(status_code=400, detail="Character description cannot be empty")
+    if character.strength < 0:
+        raise HTTPException(status_code=400, detail="Character strength cannot be negative")
+    if character.speed < 0:
+        raise HTTPException(status_code=400, detail="Character speed cannot be negative")
+    if character.health < 0:
+        raise HTTPException(status_code=400, detail="Character health cannot be negative")
+    if not franchiselist:
+        raise HTTPException(status_code=400, detail="Character must be assigned to at least one franchise")
+    
     
     with db.engine.begin() as connection:
         char_id = connection.execute(
@@ -209,7 +199,7 @@ def make_character(user_id: int, character: Character, franchiselist: list[Franc
 
     return new_character
 
-@router.get("/get/franchise/{character_id}", response_model=list[Franchise])
+@router.get("/franchise/{character_id}", response_model=list[Franchise])
 def get_character_franchises(char_id: int):
     """
     Get all franchises for a given character referencing its id.
@@ -239,23 +229,3 @@ def get_character_franchises(char_id: int):
     return all_franchises
 
 
-@router.post("/review/{character_id}", status_code=status.HTTP_204_NO_CONTENT)
-def review_character(user_id: int, character_id: int, comment: str):
-    """
-    Review a character.
-    """
-    if not comment:
-        raise HTTPException(status_code=400, detail="Comment cannot be empty")
-
-    with db.engine.begin() as connection:
-        connection.execute(
-            sqlalchemy.text("""
-                INSERT INTO c_review (user_id, char_id, comment)
-                VALUES (:user_id, :char_id, :comment)
-            """),
-            {
-                "user_id": user_id,
-                "char_id": character_id,
-                "comment": comment
-            },
-        )

@@ -57,7 +57,7 @@ uv run main.py
 ```
 Test Endpoints
 
-Open http://127.0.0.1:8000/docs.
+Open http://127.0.0.1:3000/docs.
 Use the interactive documentation to test API endpoints.
 Run Tests
 

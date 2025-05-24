@@ -1,3 +1,4 @@
+import re
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 import sqlalchemy
@@ -12,9 +13,11 @@ router = APIRouter(
     tags=["User"],
     dependencies=[Depends(auth.get_api_key)],)
 
+USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 
-@router.get("/get/by_id/{user_id}", response_model=User)
+
+@router.get("/by_id/{user_id}", response_model=User)
 def get_user(user_id: int):
     """
     Get User by ID.
@@ -36,11 +39,12 @@ def get_user(user_id: int):
 
     return user
 
-@router.get("/get/by_name/{username}", response_model=User)
+@router.get("/by_name/{username}", response_model=User)
 def get_user_by_name(username: str):
     """
     Get User by name.
     """
+    print(f"Getting user by name: {username}")
     with db.engine.begin() as connection:
         user = connection.execute(
             sqlalchemy.text("""
@@ -55,7 +59,6 @@ def get_user_by_name(username: str):
     
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
-
     return user
 
 @router.post("/make", response_model=User)
@@ -65,6 +68,13 @@ def make_user(name: str):
     """
     if not name:
         raise HTTPException(status_code=400, detail="Name cannot be empty")
+    
+    if not USERNAME_REGEX.fullmatch(name):
+        raise HTTPException(
+            status_code=400,
+            detail="Username must only contain letters, numbers, dashes, or underscores"
+        )
+    
     # Save the user to the database
     with db.engine.begin() as connection:
         user_id = connection.execute(

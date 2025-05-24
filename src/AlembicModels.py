@@ -10,7 +10,7 @@ class User(Base):
     
     id = Column(Integer, primary_key=True)
     name = Column(String(30), unique=True, nullable=False)
-    made_at = Column(DateTime, server_default=func.now())
+    createed_at = Column(DateTime, server_default=func.now())
 
     
 class C_Review(Base):
@@ -20,7 +20,7 @@ class C_Review(Base):
     user_id = Column (Integer, ForeignKey('user.id'), nullable=False)
     char_id = Column(Integer, ForeignKey('character.id'), nullable=False)
     comment = Column(String(500), nullable=False)
-    made_at = Column(DateTime, server_default=func.now())
+    created_at = Column(DateTime, server_default=func.now())
     
     
 class F_Review(Base):
@@ -30,7 +30,7 @@ class F_Review(Base):
     user_id = Column (Integer, ForeignKey('user.id'), nullable=False)
     franchise_id = Column(Integer, ForeignKey('franchise.id'), nullable=False)
     comment = Column(String(500), nullable=False)
-    made_at = Column(DateTime, server_default=func.now())
+    created_at = Column(DateTime, server_default=func.now())
     
     
 class Character(Base):
@@ -44,7 +44,7 @@ class Character(Base):
     strength = Column(Float, nullable=False)
     speed = Column(Float, nullable=False)
     health = Column(Float, nullable=False)
-    made_at = Column(DateTime, server_default=func.now())
+    created_at = Column(DateTime, server_default=func.now())
     
     
 class CharFran(Base):
@@ -61,6 +61,7 @@ class Franchise(Base):
     id = Column(Integer, primary_key=True) 
     name = Column(String(50), nullable=False)
     description = Column(String(200), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
     
     
 class Battle(Base):
@@ -71,13 +72,15 @@ class Battle(Base):
     char1_id = Column(Integer, ForeignKey('character.id'), nullable=False)
     char2_id = Column(Integer, ForeignKey('character.id'), nullable=False)
     winner_id = Column(Integer, ForeignKey('character.id'), nullable=True)
-    start_date = Column(DateTime, default=now())
-    end_date = Column(DateTime, default=now() + timedelta(days=24))
+    start_date = Column(DateTime, default=now(), nullable=False)
+    end_date = Column(DateTime, nullable=False)
     
     
 class BattleVotes(Base):
     __tablename__ = "battle_votes"
 
     id = Column(Integer, autoincrement=True, primary_key=True)
+    char_id = Column(Integer, ForeignKey('character.id'), nullable=False)
     battle_id = Column(Integer, ForeignKey('battle.id'), nullable=False)
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())

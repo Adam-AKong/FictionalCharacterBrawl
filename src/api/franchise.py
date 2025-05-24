@@ -1,3 +1,4 @@
+import re
 from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 import sqlalchemy
@@ -11,7 +12,10 @@ router = APIRouter(
     tags=["Franchise"],
     dependencies=[Depends(auth.get_api_key)],)
 
-@router.get("/get/by_id/{franchise_id}", response_model=FranchiseMakeResponse)
+
+USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_-]+$")
+
+@router.get("/by_id/{franchise_id}", response_model=FranchiseMakeResponse)
 def get_franchise_by_id(franchise_id: int):
     """
     Get franchise by ID.
@@ -39,7 +43,7 @@ def get_franchise_by_id(franchise_id: int):
         )
         
 
-@router.get("/get/by_name/{franchise_name}", response_model=FranchiseMakeResponse)
+@router.get("/by_name/{franchise_name}", response_model=FranchiseMakeResponse)
 def get_franchise_by_name(franchise_name: str):
     """
     Get franchise by name.
@@ -72,6 +76,12 @@ def make_franchise(franchise: Franchise):
     Create a new franchise.
     """
 
+    if not USERNAME_REGEX.fullmatch(franchise):
+        raise HTTPException(
+            status_code=400,
+            detail="Franchise must only contain letters, numbers, dashes, or underscores"
+        )
+
     # We need to add later that there can only be 1 franchise
     with db.engine.begin() as connection:
         fran_id = connection.execute(
@@ -93,52 +103,5 @@ def make_franchise(franchise: Franchise):
     )
     return new_franchise
 
-@router.post("/review/{franchise_id}", status_code=status.HTTP_204_NO_CONTENT)
-def make_franchise_review(user_id: int, franchise_id: int, comment: str):
-    """
-    Make a review for a franchise.
-    """
-    if not comment:
-        raise HTTPException(status_code=400, detail="Comment cannot be empty")
-
-    # No issue with duplicate comments here, just franchises.
-    with db.engine.begin() as connection:
-        connection.execute(
-            sqlalchemy.text("""
-                INSERT INTO f_review (user_id, franchise_id, comment)
-                VALUES (:user_id, :franchise_id, :comment)
-            """),
-            {
-                "user_id": user_id,
-                "franchise_id": franchise_id,
-                "comment": comment,
-            },
-        )
         
-@router.get("/get_review/{franchise_id}", response_model=list[Returned_Review])
-def get_franchise_review(franchise_id: int):
-    """
-    Get all reviews for a given franchise referencing its id.
-    """
-    with db.engine.begin() as connection:
-        comments = connection.execute(
-            sqlalchemy.text("""
-                SELECT user_id, comment
-                FROM f_review
-                WHERE franchise_id = :fran_id
-            """),
-            {
-                "fran_id": franchise_id
-            }
-        ).all()
 
-    all_comments = []
-    for comment in comments:
-        all_comments.append(
-            Returned_Review(
-                user_id = comment.user_id,
-                comment = comment.comment
-            )
-        )
-
-    return all_comments
