@@ -32,19 +32,18 @@ def get_user(user_id: int):
             {
              "user_id": user_id,
              },
-        ).one_or_none()
+        ).scalar_one_or_none()
     
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        if user is None:
+            raise HTTPException(status_code=404, detail=f"User with id={user_id} not found")
 
-    return user
+        return user
 
 @router.get("/by_name/{username}", response_model=User)
 def get_user_by_name(username: str):
     """
     Get User by name.
     """
-    print(f"Getting user by name: {username}")
     with db.engine.begin() as connection:
         user = connection.execute(
             sqlalchemy.text("""
@@ -55,11 +54,11 @@ def get_user_by_name(username: str):
             {
              "username": username,
              },
-        ).one_or_none()
+        ).scalar_one_or_none()
     
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
+        if user is None:
+            raise HTTPException(status_code=404, detail=f"User with name={username} not found")
+        return user
 
 @router.post("/make", response_model=User)
 def make_user(name: str):
@@ -77,6 +76,24 @@ def make_user(name: str):
     
     # Save the user to the database
     with db.engine.begin() as connection:
+        
+        # Check if the user already exists
+        existing_user = connection.execute(
+            sqlalchemy.text("""
+                SELECT id
+                FROM "user"
+                WHERE name = :name
+            """),
+            {
+             "name": name,
+             },
+        ).scalar_one_or_none()
+        if existing_user is not None:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"User with name '{name}' already exists"
+            )
+    
         user_id = connection.execute(
             sqlalchemy.text("""
                 INSERT INTO "user" (name)
@@ -88,10 +105,10 @@ def make_user(name: str):
              },
         ).scalar_one()
     
-    new_user = User(
-        id = user_id,
-        name = name
-    )
+        new_user = User(
+            id = user_id,
+            name = name
+        )
 
-    return new_user
+        return new_user
     

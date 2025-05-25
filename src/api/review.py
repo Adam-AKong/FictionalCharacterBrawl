@@ -10,7 +10,7 @@ router = APIRouter(
     tags=["Review"],
     dependencies=[Depends(auth.get_api_key)],)
 
-@router.post("/character/create/{character_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/character/create/{character_id}", response_model=Returned_Review)
 def review_character(user_id: int, character_id: int, comment: str):
     """
     Review a character.
@@ -19,10 +19,14 @@ def review_character(user_id: int, character_id: int, comment: str):
         raise HTTPException(status_code=400, detail="Comment cannot be empty")
 
     with db.engine.begin() as connection:
+        # If conflict occurs, it means the user has already reviewed this character.
+        # Update the existing review instead of inserting a new one.
         connection.execute(
             sqlalchemy.text("""
                 INSERT INTO c_review (user_id, char_id, comment)
                 VALUES (:user_id, :char_id, :comment)
+                ON CONFLICT (user_id, char_id) DO UPDATE
+                SET comment = EXCLUDED.comment
             """),
             {
                 "user_id": user_id,
@@ -30,6 +34,11 @@ def review_character(user_id: int, character_id: int, comment: str):
                 "comment": comment
             },
         )
+    return Returned_Review(
+        user_id = user_id,
+        comment = comment
+    )
+    
         
 @router.get("/character/list/{character_id}", response_model=list[Returned_Review])
 def get_character_review(character_id: int):
@@ -47,21 +56,24 @@ def get_character_review(character_id: int):
                 "char_id": character_id
             }
         ).all()
+        
+        if not comments:
+            return []
 
-    all_comments = []
-    for comment in comments:
-        all_comments.append(
-            Returned_Review(
-                user_id = comment.user_id,
-                comment = comment.comment
+        all_comments = []
+        for comment in comments:
+            all_comments.append(
+                Returned_Review(
+                    user_id = comment.user_id,
+                    comment = comment.comment
+                )
             )
-        )
 
-    return all_comments
-
+        return all_comments
 
 
-@router.post("/franchise/create/{franchise_id}", status_code=status.HTTP_204_NO_CONTENT)
+
+@router.post("/franchise/create/{franchise_id}", response_model=Returned_Review)
 def make_franchise_review(user_id: int, franchise_id: int, comment: str):
     """
     Make a review for a franchise.
@@ -69,12 +81,15 @@ def make_franchise_review(user_id: int, franchise_id: int, comment: str):
     if not comment:
         raise HTTPException(status_code=400, detail="Comment cannot be empty")
 
-    # No issue with duplicate comments here, just franchises.
+    # If conflict occurs, it means the user has already reviewed this character.
+    # Update the existing review instead of inserting a new one.
     with db.engine.begin() as connection:
         connection.execute(
             sqlalchemy.text("""
                 INSERT INTO f_review (user_id, franchise_id, comment)
                 VALUES (:user_id, :franchise_id, :comment)
+                ON CONFLICT (user_id, franchise_id) DO UPDATE
+                SET comment = EXCLUDED.comment
             """),
             {
                 "user_id": user_id,
@@ -82,6 +97,11 @@ def make_franchise_review(user_id: int, franchise_id: int, comment: str):
                 "comment": comment,
             },
         )
+    
+    return Returned_Review(
+        user_id = user_id,
+        comment = comment
+    )
 
 
 
@@ -101,14 +121,17 @@ def get_franchise_review(franchise_id: int):
                 "fran_id": franchise_id
             }
         ).all()
+        
+        if not comments:
+            return []
 
-    all_comments = []
-    for comment in comments:
-        all_comments.append(
-            Returned_Review(
-                user_id = comment.user_id,
-                comment = comment.comment
+        all_comments = []
+        for comment in comments:
+            all_comments.append(
+                Returned_Review(
+                    user_id = comment.user_id,
+                    comment = comment.comment
+                )
             )
-        )
 
-    return all_comments
+        return all_comments

@@ -31,10 +31,10 @@ def get_franchise_by_id(franchise_id: int):
             {
                 "id": franchise_id
                 }
-        ).one()
+        ).scalar_one_or_none()
         
         if franchise is None:
-            raise HTTPException(status_code=404, detail="Franchise not found")
+            raise HTTPException(status_code=404, detail=f"Franchise with id={franchise_id} not found")
         
         return FranchiseMakeResponse(
             id=franchise_id,
@@ -59,10 +59,10 @@ def get_franchise_by_name(franchise_name: str):
             {
                 "franchise_name": franchise_name
                 }
-        ).one()
+        ).scalar_one()
         
-        if franchise is None:
-            raise HTTPException(status_code=404, detail="Franchise not found")
+        if not franchise:
+            raise HTTPException(status_code=404, detail=f"Franchise with name '{franchise_name}' not found")
         
         return FranchiseMakeResponse(
             id=franchise.id,
@@ -76,14 +76,29 @@ def make_franchise(franchise: Franchise):
     Create a new franchise.
     """
 
-    if not USERNAME_REGEX.fullmatch(franchise):
+    if not USERNAME_REGEX.fullmatch(franchise.name):
         raise HTTPException(
             status_code=400,
             detail="Franchise must only contain letters, numbers, dashes, or underscores"
         )
-
-    # We need to add later that there can only be 1 franchise
     with db.engine.begin() as connection:
+        # check if franchise name already exists
+        existing_franchise = connection.execute(
+            sqlalchemy.text("""
+                SELECT id
+                FROM franchise
+                WHERE name = :name
+            """),
+            {
+                "name": franchise.name,
+            },
+        ).scalar_one_or_none()
+        if existing_franchise is not None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Franchise with name '{franchise.name}' already exists"
+            )
+        
         fran_id = connection.execute(
             sqlalchemy.text("""
                 INSERT INTO franchise (name, description)

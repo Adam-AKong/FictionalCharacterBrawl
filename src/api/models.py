@@ -79,7 +79,11 @@ class BattleResult(BaseModel):
     end: datetime
     finished: bool
     
-    
+class BattleVoteResponse(BaseModel):
+    message: str
+    battle_id: int
+    char_id: int
+
 class User(BaseModel):
     id: int
     name: str

@@ -7,7 +7,7 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from pydantic import BaseModel
 from sqlalchemy import DateTime
 
-from src.api.models import Battle, BattleCreateResponse, BattleResult, Character
+from src.api.models import Battle, BattleCreateResponse, BattleResult, BattleVoteResponse, Character
 from src import database as db
 from src.api import auth
 
@@ -18,6 +18,16 @@ router = APIRouter(
     )
 
 
+def calculate_score(opposing_health: int, strength: int, speed: int, votes: int) -> float:
+    """
+    Calculate the score for a character based on its health, strength, speed, and votes.
+    """
+    # Calculate the winner based on the votes and character stats
+    # Lowest score wins. Votes are multiplied by a modifier to reduce the score
+    # More votes = lower score = more likely to win
+    # Formula: score = (health / (strength * speed)) * (vote_modifier ^ votes)
+    vote_modifier = 0.9
+    return (opposing_health / (strength * speed)) * (pow(vote_modifier, votes))
 
 def calculate_winner(connection, battle) -> int:
     """
@@ -45,13 +55,19 @@ def calculate_winner(connection, battle) -> int:
         [{"id": battle.char2_id}]
     ).one()
     
-    # Calculate the winner based on the votes and character stats
-    # Lowest score wins. Votes are multiplied by a modifier to reduce the score
-    # More votes = lower score = more likely to win
-    vote_modifier = 0.9
-    
-    character1_score = (character2.health / (character1.strength * character1.speed)) * (pow(vote_modifier, battle.vote1))
-    character2_score = (character1.health / (character2.strength * character2.speed)) * (pow(vote_modifier, battle.vote2))
+
+    character1_score = calculate_score(
+        character2.health, 
+        character1.strength, 
+        character1.speed, 
+        battle.vote1
+    )
+    character2_score = calculate_score(
+        character1.health, 
+        character2.strength, 
+        character2.speed, 
+        battle.vote2
+    )
     if character1_score < character2_score:
         # Character 1 wins
         # Increase the rating of the winner
@@ -127,8 +143,10 @@ def get_battle_result(battle_id: int):
                 """
             ),
             [{"id": battle_id}]
-        ).one()
+        ).scalar_one()
         
+        if battle is None:
+            raise HTTPException(status_code=404, detail=f"Battle with id {battle_id} not found")
         
         if battle.end_date > datetime.now():
             return BattleResult(
@@ -177,7 +195,6 @@ def character_participation(character_id: int):
     Get a list of battles a character has fought in.
     """
     battles = []
-    print("[DEBUG] Getting battles for character")
     with db.engine.begin() as connection:
         # Get all battles for the character
         battlelist = connection.execute(
@@ -185,76 +202,68 @@ def character_participation(character_id: int):
                 """
                 SELECT *
                 FROM battle_with_votes
-                WHERE char1_id = :char OR char2_id = :char
+                WHERE char1_id = :character OR char2_id = :character
                 """
             ),
-            [{"char": character_id}]
+            [{"character": character_id}]
         ).fetchall()
         
         # If no battles are found, return an empty list
         if not battlelist:
-            print("[DEBUG] No battles found for character")
             return []
         
-        for r in battlelist:
-            if r.end_date > datetime.now():
-                print("[DEBUG] Battle is still active")
+        for b in battlelist:
+            if b.end_date > datetime.now():
                 finished = False
             else:
                 finished = True
-                print("[DEBUG] Battle has ended")
             # Check if the winner is set
-            if r.winner_id is None and finished:
-                print("[DEBUG] Winner is not set, calculating winner")
-                winner = update_winner(connection, r)
-                
-                print(f"[DEBUG] Winner of {r.id} calculated and appending battle result")
+            if b.winner_id is None and finished:
+                winner = update_winner(connection, b)
+            
                 battles.append(
                     BattleResult(
-                        battle_id=r.id,
-                        char1_id=r.char1_id,
-                        char2_id=r.char2_id,
-                        vote1=r.vote1,
-                        vote2=r.vote2,
+                        battle_id=b.id,
+                        char1_id=b.char1_id,
+                        char2_id=b.char2_id,
+                        vote1=b.vote1,
+                        vote2=b.vote2,
                         winner_id=winner,
-                        start=r.start_date,
-                        end=r.end_date,
+                        start=b.start_date,
+                        end=b.end_date,
                         finished=finished
                     )
                 )  
-            elif r.winner_id is None and not finished:
+            elif b.winner_id is None and not finished:
                # If the battle is still active and the winner is not set, just append the battle result
-                print(f"[DEBUG] Battle {r.id} is still active and winner is not set, appending battle result")
                 battles.append(
                     BattleResult(
-                        battle_id=r.id,
-                        char1_id=r.char1_id,
-                        char2_id=r.char2_id,
-                        vote1=r.vote1,
-                        vote2=r.vote2,
+                        battle_id=b.id,
+                        char1_id=b.char1_id,
+                        char2_id=b.char2_id,
+                        vote1=b.vote1,
+                        vote2=b.vote2,
                         winner_id=None,
-                        start=r.start_date,
-                        end=r.end_date,
+                        start=b.start_date,
+                        end=b.end_date,
                         finished=finished
                     )
                 )
             else:
                 # If the winner is already set, just append the battle result
-                print(f"[DEBUG] Winner of battle {r.id} is already set, appending battle result")
                 battles.append(
                     BattleResult(
-                        battle_id=r.id,
-                        char1_id=r.char1_id,
-                        char2_id=r.char2_id,
-                        vote1=r.vote1,
-                        vote2=r.vote2,
-                        winner_id=r.winner_id,
-                        start=r.start_date,
-                        end=r.end_date,
+                        battle_id=b.id,
+                        char1_id=b.char1_id,
+                        char2_id=b.char2_id,
+                        vote1=b.vote1,
+                        vote2=b.vote2,
+                        winner_id=b.winner_id,
+                        start=b.start_date,
+                        end=b.end_date,
                         finished=finished
                     )
                 )
-    print(f"[DEBUG] Returning {len(battles)} battles for character {character_id}")
     return battles
             
 
@@ -264,7 +273,6 @@ def user_participation(user_id: int):
     Get a list of battles a user has participated in.
     """
     battles = []
-    print("[DEBUG] Getting battles for user")
     with db.engine.begin() as connection:
         battlelist = connection.execute(
             sqlalchemy.text(
@@ -278,7 +286,6 @@ def user_participation(user_id: int):
         ).fetchall()
         # If no battles found, return an empty list
         if not battlelist:
-            print("[DEBUG] No battles found for user")
             return []
         
         for r in battlelist:
@@ -323,7 +330,7 @@ def user_participation(user_id: int):
                 )
     return battles
 
-@router.post("/vote/{user_id}/{battle_id}/{character_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.post("/vote/{user_id}/{battle_id}/{character_id}", response_model=BattleVoteResponse)
 def battle_vote(user_id: int, battle_id: int, character_id: int):
     """
     Vote for a character during an active battle.
@@ -340,14 +347,14 @@ def battle_vote(user_id: int, battle_id: int, character_id: int):
                 """
             ),
             [{"id": battle_id}]
-        ).one_or_none()
+        ).scalar_one_or_none()
         
         if battle is None:
-            raise HTTPException(status_code=404, detail="Battle not found")
+            raise HTTPException(status_code=404, detail=f"Battle with id {battle_id} not found")
         
         # Check if the battle is still active
         if battle.end_date < datetime.now():
-            raise HTTPException(status_code=400, detail="Battle has ended")
+            raise HTTPException(status_code=400, detail=f"Battle with id {battle_id} has already ended")
         
         character_ids = connection.execute(
             sqlalchemy.text(
@@ -358,7 +365,7 @@ def battle_vote(user_id: int, battle_id: int, character_id: int):
                 """
             ),
             [{"id": battle_id}]
-        ).one()
+        ).sclar_one()
         
         if character_ids.char1_id == character_id or character_ids.char2_id == character_id:
             # Check if the user has already voted
@@ -371,10 +378,10 @@ def battle_vote(user_id: int, battle_id: int, character_id: int):
                     """
                 ),
                 [{"user": user_id, "battle": battle_id}]
-            ).one_or_none()
+            ).scalar_one_or_none()
             
             if existing_vote is not None:
-                raise HTTPException(status_code=400, detail="User has already voted")
+                raise HTTPException(status_code=400, detail=f"User {user_id} has already voted in battle {battle_id}")
             
             # Insert the vote into the database
             connection.execute(
@@ -389,6 +396,12 @@ def battle_vote(user_id: int, battle_id: int, character_id: int):
             )
         else:
             raise HTTPException(status_code=400, detail="Character not in battle")
+        
+    return BattleVoteResponse(
+        message=f"User {user_id} has successfully voted",
+        battle_id=battle_id,
+        character_id=character_id,
+    )
 
 @router.post("/make", response_model=BattleCreateResponse)
 def create_battle(Battle: Battle):
@@ -397,26 +410,63 @@ def create_battle(Battle: Battle):
     """
     # Assuming duration is in hours
     
-    print("[DEBUG] Creating battle")
+    
+    if Battle.char1_id == Battle.char2_id:
+        raise HTTPException(status_code=400, detail="Cannot create a battle with the same character")
+    if Battle.char1_id is None:
+        raise HTTPException(status_code=400, detail="Character 1 ID cannot be None")
+    if Battle.char2_id is None:
+        raise HTTPException(status_code=400, detail="Character 2 ID cannot be None")
+    if Battle.duration <= 0:
+        raise HTTPException(status_code=400, detail="Battle duration must be greater than 0")
+    if Battle.user_id is None:
+        raise HTTPException(status_code=400, detail="User ID cannot be None")
+        
     
     start_time = datetime.now()
     end_time = start_time + timedelta(hours=Battle.duration)
     
     with db.engine.begin() as connection:
-        print("[DEBUG] Inserting battle into database")
+        
+        # Check if the characters exist
+        char1_exists = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT id
+                FROM character
+                WHERE id = :id
+                """
+            ),
+            [{"id": Battle.char1_id}]
+        ).scalar_one_or_none()
+        
+        char2_exists = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT id
+                FROM character
+                WHERE id = :id
+                """
+            ),
+            [{"id": Battle.char2_id}]
+        ).scalar_one_or_none()
+        
+        if char1_exists is None:
+            raise HTTPException(status_code=404, detail=f"Character 1 with id {Battle.char1_id} not found")
+        if char2_exists is None:
+            raise HTTPException(status_code=404, detail=f"Character 2 with id {Battle.char2_id} not found")
+        
         battle_id = connection.execute(
             sqlalchemy.text(
                 """
-                INSERT INTO battle (user_id, char1_id, char2_id, vote1, vote2, start_date, end_date)
-                VALUES (:user, :char1, :char2, :vote1, :vote2, :start, :end)
+                INSERT INTO battle (user_id, char1_id, char2_id, start_date, end_date)
+                VALUES (:user, :char1, :char2, :start, :end)
                 RETURNING id
                 """
             ),
             [{"user": Battle.user_id,
               "char1": Battle.char1_id,
               "char2": Battle.char2_id,
-              "vote1": 0,
-              "vote2": 0,
               "start": start_time,
               "end": end_time
               }]

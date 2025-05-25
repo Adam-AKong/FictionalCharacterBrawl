@@ -39,7 +39,7 @@ class Character(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column (Integer, ForeignKey('user.id'), nullable=False) 
     name = Column(String(30), nullable=False)
-    description = Column(String(150), nullable=True)
+    description = Column(String(150), nullable=False)
     rating = Column(Float, nullable=False)
     strength = Column(Float, nullable=False)
     speed = Column(Float, nullable=False)
@@ -59,8 +59,8 @@ class Franchise(Base):
     __tablename__ = "franchise"
     
     id = Column(Integer, primary_key=True) 
-    name = Column(String(50), nullable=False)
-    description = Column(String(200), nullable=True)
+    name = Column(String(50), unique=True, nullable=False)
+    description = Column(String(200), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
     
     

@@ -21,6 +21,7 @@ def get_character_by_id(character_id: int):
     """
     
     with db.engine.begin() as connection:
+        
         character = connection.execute(
             sqlalchemy.text("""
                 SELECT id, user_id, name, description, rating, strength, speed, health
@@ -30,20 +31,23 @@ def get_character_by_id(character_id: int):
             {
                 "id": character_id
             }
-        ).one()
-    
-    the_character = ReturnedCharacter(
-        char_id=character_id,
-        user_id=character.user_id,
-        name=character.name,
-        description=character.description,
-        rating=character.rating,
-        strength=character.strength,
-        speed=character.speed,
-        health=character.health,
-    )
+        ).scalar_one()
+        
+        if not character:
+            raise HTTPException(status_code=404, detail=f"Character with id={character_id} not found")
+        
+        the_character = ReturnedCharacter(
+            char_id=character_id,
+            user_id=character.user_id,
+            name=character.name,
+            description=character.description,
+            rating=character.rating,
+            strength=character.strength,
+            speed=character.speed,
+            health=character.health,
+        )
 
-    return the_character
+        return the_character
 
 
 @router.get("/list/{user_id}", response_model=list[ReturnedCharacter])
@@ -63,21 +67,25 @@ def get_user_characters(user_id: int):
                 "user_id": user_id
             }
         ).all()
+        
+        # If no characters are found, return an empty list
+        if not characters:
+            return []
     
-    user_characters = [
-        ReturnedCharacter(
-            char_id=character.id,
-            user_id=character.user_id,
-            name=character.name,
-            description=character.description,
-            rating=character.rating,
-            strength=character.strength,
-            speed=character.speed,
-            health=character.health,
-        )
-        for character in characters
-    ]
-    return user_characters
+        user_characters = [
+            ReturnedCharacter(
+                char_id=character.id,
+                user_id=character.user_id,
+                name=character.name,
+                description=character.description,
+                rating=character.rating,
+                strength=character.strength,
+                speed=character.speed,
+                health=character.health,
+            )
+            for character in characters
+        ]
+        return user_characters
 
 
 
@@ -99,22 +107,26 @@ def get_leaderboard():
                 LIMIT 10
             """)
         ).all()
+        
+        # If no characters are found, return an empty list
+        if not characters:
+            return []
     
-    characters = [ 
-        ReturnedCharacter(
-            char_id=character.id,
-            user_id=character.user_id,
-            name=character.name,
-            description=character.description,
-            rating=character.rating,
-            strength=character.strength,
-            speed=character.speed,
-            health=character.health,
-        )
-        for character in characters
-    ]
-    
-    return characters
+        characters = [ 
+            ReturnedCharacter(
+                char_id=character.id,
+                user_id=character.user_id,
+                name=character.name,
+                description=character.description,
+                rating=character.rating,
+                strength=character.strength,
+                speed=character.speed,
+                health=character.health,
+            )
+            for character in characters
+        ]
+        
+        return characters
 
 
 
@@ -169,9 +181,9 @@ def make_character(user_id: int, character: Character, franchiselist: list[Franc
                 {
                     "franchise_id": franchise.franchise_id
                 }
-            ).scalar_one_or_none()
+            ).scalar_one()
             
-            if franchise_id is None:
+            if not franchise_id:
                 raise HTTPException(status_code=404, detail=f"Franchise id={franchise} not found")
             
             connection.execute(
@@ -186,21 +198,21 @@ def make_character(user_id: int, character: Character, franchiselist: list[Franc
             )
             
 
-    new_character = CharacterMakeResponse(
-        char_id = char_id,
-        user_id = user_id,
-        name = character.name,
-        description = character.description,
-        rating = 0,
-        strength = character.strength,
-        speed = character.speed,
-        health = character.health
-    )
+        new_character = CharacterMakeResponse(
+            char_id = char_id,
+            user_id = user_id,
+            name = character.name,
+            description = character.description,
+            rating = 0,
+            strength = character.strength,
+            speed = character.speed,
+            health = character.health
+        )
 
-    return new_character
+        return new_character
 
 @router.get("/franchise/{character_id}", response_model=list[Franchise])
-def get_character_franchises(char_id: int):
+def get_character_franchises(character_id: int):
     """
     Get all franchises for a given character referencing its id.
     """
@@ -213,19 +225,22 @@ def get_character_franchises(char_id: int):
                 WHERE cf.char_id = :char_id
             """),
             {
-                "char_id": char_id
+                "char_id": character_id
             }
         ).all()
+        
+        if not franchises:
+            raise HTTPException(status_code=404, detail="No franchises found for this character")
 
-    all_franchises = []
-    for franchise in franchises:
-        all_franchises.append(
-            Franchise(
-                name = franchise.name,
-                description = franchise.description
+        all_franchises = []
+        for franchise in franchises:
+            all_franchises.append(
+                Franchise(
+                    name = franchise.name,
+                    description = franchise.description
+                )
             )
-        )
 
-    return all_franchises
+        return all_franchises
 
 
