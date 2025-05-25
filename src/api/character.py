@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 import sqlalchemy
 from src import database as db
 
-from src.api.models import Character, CharacterMakeResponse, Franchise, FranchiseCharacterAssignment, FranchiseReturnResponse, ReturnedCharacter
+from src.api.models import Character, CharacterMakeResponse, FranchiseCharacterAssignment, FranchiseReturnResponse, ReturnedCharacter
 from src.api import auth
 
 router = APIRouter(

@@ -3,11 +3,9 @@ from math import pow
 import random
 
 import sqlalchemy
-from fastapi import APIRouter, HTTPException, status, Depends
-from pydantic import BaseModel
-from sqlalchemy import DateTime
+from fastapi import APIRouter, HTTPException, Depends
 
-from src.api.models import Battle, BattleCreateResponse, BattleResult, BattleVoteResponse, Character
+from src.api.models import Battle, BattleCreateResponse, BattleResult, BattleVoteResponse
 from src import database as db
 from src.api import auth
 
@@ -429,27 +427,27 @@ def battle_vote(user_id: int, battle_id: int, character_id: int):
     )
 
 @router.post("/make", response_model=BattleCreateResponse)
-def create_battle(Battle: Battle):
+def create_battle(battle_data: Battle):
     """
     Create a battle between two characters and return its id.
     """
     # Assuming duration is in hours
     
     
-    if Battle.char1_id == Battle.char2_id:
+    if battle_data.char1_id == battle_data.char2_id:
         raise HTTPException(status_code=400, detail="Cannot create a battle with the same character")
-    if Battle.char1_id is None:
+    if battle_data.char1_id is None:
         raise HTTPException(status_code=400, detail="Character 1 ID cannot be None")
-    if Battle.char2_id is None:
+    if battle_data.char2_id is None:
         raise HTTPException(status_code=400, detail="Character 2 ID cannot be None")
-    if Battle.duration < 0:
+    if battle_data.duration < 0:
         raise HTTPException(status_code=400, detail="Battle duration must not be negative")
-    if Battle.user_id is None:
+    if battle_data.user_id is None:
         raise HTTPException(status_code=400, detail="User ID cannot be None")
         
     
     start_time = datetime.now()
-    end_time = start_time + timedelta(hours=Battle.duration)
+    end_time = start_time + timedelta(hours=battle_data.duration)
     
     with db.engine.begin() as connection:
         
@@ -462,7 +460,7 @@ def create_battle(Battle: Battle):
                 WHERE id = :id
                 """
             ),
-            [{"id": Battle.char1_id}]
+            [{"id": battle_data.char1_id}]
         ).scalar_one_or_none()
         
         char2_exists = connection.execute(
@@ -473,13 +471,13 @@ def create_battle(Battle: Battle):
                 WHERE id = :id
                 """
             ),
-            [{"id": Battle.char2_id}]
+            [{"id": battle_data.char2_id}]
         ).scalar_one_or_none()
         
         if char1_exists is None:
-            raise HTTPException(status_code=404, detail=f"Character 1 with id {Battle.char1_id} not found")
+            raise HTTPException(status_code=404, detail=f"Character 1 with id {battle_data.char1_id} not found")
         if char2_exists is None:
-            raise HTTPException(status_code=404, detail=f"Character 2 with id {Battle.char2_id} not found")
+            raise HTTPException(status_code=404, detail=f"Character 2 with id {battle_data.char2_id} not found")
         
         battle_id = connection.execute(
             sqlalchemy.text(
@@ -489,9 +487,9 @@ def create_battle(Battle: Battle):
                 RETURNING id
                 """
             ),
-            [{"user": Battle.user_id,
-              "char1": Battle.char1_id,
-              "char2": Battle.char2_id,
+            [{"user": battle_data.user_id,
+              "char1": battle_data.char1_id,
+              "char2": battle_data.char2_id,
               "start": start_time,
               "end": end_time
               }]
@@ -499,9 +497,9 @@ def create_battle(Battle: Battle):
         
     return BattleCreateResponse(
         battle_id=battle_id,
-        char1_id=Battle.char1_id,
-        char2_id=Battle.char2_id,
-        duration=Battle.duration,
+        char1_id=battle_data.char1_id,
+        char2_id=battle_data.char2_id,
+        duration=battle_data.duration,
         start=start_time,
         end=end_time
     )

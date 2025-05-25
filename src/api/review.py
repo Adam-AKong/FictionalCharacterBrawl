@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, Depends
 import sqlalchemy
 from src import database as db
 from src.api.models import C_Review, F_Review
