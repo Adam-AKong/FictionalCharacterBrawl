@@ -143,7 +143,7 @@ def get_battle_result(battle_id: int):
                 """
             ),
             [{"id": battle_id}]
-        ).scalar_one()
+        ).one_or_none()
         
         if battle is None:
             raise HTTPException(status_code=404, detail=f"Battle with id {battle_id} not found")
@@ -151,6 +151,7 @@ def get_battle_result(battle_id: int):
         if battle.end_date > datetime.now():
             return BattleResult(
                 battle_id=battle.id,
+                user_id=battle.user_id,
                 char1_id=battle.char1_id,
                 char2_id=battle.char2_id,
                 vote1=battle.vote1,
@@ -167,6 +168,7 @@ def get_battle_result(battle_id: int):
             
             return BattleResult(
                 battle_id=battle.id,
+                user_id=battle.user_id,
                 char1_id=battle.char1_id,
                 char2_id=battle.char2_id,
                 vote1=battle.vote1,
@@ -179,6 +181,7 @@ def get_battle_result(battle_id: int):
     
         return BattleResult(
             battle_id=battle.id,
+            user_id=battle.user_id,
             char1_id=battle.char1_id,
             char2_id=battle.char2_id,
             vote1=battle.vote1,
@@ -224,6 +227,7 @@ def character_participation(character_id: int):
                 battles.append(
                     BattleResult(
                         battle_id=b.id,
+                        user_id=b.user_id,
                         char1_id=b.char1_id,
                         char2_id=b.char2_id,
                         vote1=b.vote1,
@@ -239,6 +243,7 @@ def character_participation(character_id: int):
                 battles.append(
                     BattleResult(
                         battle_id=b.id,
+                        user_id=b.user_id,
                         char1_id=b.char1_id,
                         char2_id=b.char2_id,
                         vote1=b.vote1,
@@ -254,6 +259,7 @@ def character_participation(character_id: int):
                 battles.append(
                     BattleResult(
                         battle_id=b.id,
+                        user_id=b.user_id,
                         char1_id=b.char1_id,
                         char2_id=b.char2_id,
                         vote1=b.vote1,
@@ -283,33 +289,34 @@ def user_participation(user_id: int):
                 """
             ),
             [{"user": user_id}]
-        ).fetchall()
+        ).all()
         # If no battles found, return an empty list
         if not battlelist:
             return []
         
-        for r in battlelist:
+        for b in battlelist:
             # Check if the battle has ended
-            if r.end_date > datetime.now():
+            if b.end_date > datetime.now():
                 finished = False
             else:
                 finished = True
             # Check if the winner is set
-            if r.winner_id is None:
+            if b.winner_id is None:
                 # Calculate the winner if not already set
-                winner = update_winner(connection, r)
+                winner = update_winner(connection, b)
                 
                 # Append the battle result
                 battles.append(
                     BattleResult(
-                        battle_id=r.id,
-                        char1_id=r.char1_id,
-                        char2_id=r.char2_id,
-                        vote1=r.vote1,
-                        vote2=r.vote2,
+                        battle_id=b.id,
+                        user_id=b.user_id,
+                        char1_id=b.char1_id,
+                        char2_id=b.char2_id,
+                        vote1=b.vote1,
+                        vote2=b.vote2,
                         winner_id=winner,
-                        start=r.start_date,
-                        end=r.end_date,
+                        start=b.start_date,
+                        end=b.end_date,
                         finished=finished
                     )
                 )
@@ -317,14 +324,15 @@ def user_participation(user_id: int):
                 # If the winner is already set, just append the battle result
                 battles.append(
                     BattleResult(
-                        battle_id=r.id,
-                        char1_id=r.char1_id,
-                        char2_id=r.char2_id,
-                        vote1=r.vote1,
-                        vote2=r.vote2,
-                        winner_id=r.winner_id,
-                        start=r.start_date,
-                        end=r.end_date,
+                        battle_id=b.id,
+                        user_id=b.user_id,
+                        char1_id=b.char1_id,
+                        char2_id=b.char2_id,
+                        vote1=b.vote1,
+                        vote2=b.vote2,
+                        winner_id=b.winner_id,
+                        start=b.start_date,
+                        end=b.end_date,
                         finished=finished
                     )
                 )
@@ -336,6 +344,21 @@ def battle_vote(user_id: int, battle_id: int, character_id: int):
     Vote for a character during an active battle.
     """    
     with db.engine.begin() as connection:
+        # Check if the user exists
+        user_exists = connection.execute(
+            sqlalchemy.text(
+                """
+                SELECT id
+                FROM "user"
+                WHERE id = :id
+                """
+            ),
+            [{"id": user_id}]
+        ).scalar_one_or_none()
+        
+        if user_exists is None:
+            raise HTTPException(status_code=404, detail=f"User with id {user_id} not found")
+        
         
         # Check if the battle exists
         battle = connection.execute(
@@ -347,7 +370,7 @@ def battle_vote(user_id: int, battle_id: int, character_id: int):
                 """
             ),
             [{"id": battle_id}]
-        ).scalar_one_or_none()
+        ).one_or_none()
         
         if battle is None:
             raise HTTPException(status_code=404, detail=f"Battle with id {battle_id} not found")
@@ -365,8 +388,8 @@ def battle_vote(user_id: int, battle_id: int, character_id: int):
                 """
             ),
             [{"id": battle_id}]
-        ).sclar_one()
-        
+        ).one()
+    
         if character_ids.char1_id == character_id or character_ids.char2_id == character_id:
             # Check if the user has already voted
             existing_vote = connection.execute(
@@ -378,7 +401,7 @@ def battle_vote(user_id: int, battle_id: int, character_id: int):
                     """
                 ),
                 [{"user": user_id, "battle": battle_id}]
-            ).scalar_one_or_none()
+            ).one_or_none()
             
             if existing_vote is not None:
                 raise HTTPException(status_code=400, detail=f"User {user_id} has already voted in battle {battle_id}")
@@ -387,20 +410,22 @@ def battle_vote(user_id: int, battle_id: int, character_id: int):
             connection.execute(
                 sqlalchemy.text(
                     """
-                    INSERT INTO battle_votes (battle_id, user_id)
-                    VALUES (:battle, :user)
+                    INSERT INTO battle_votes (battle_id, user_id, char_id)
+                    VALUES (:battle, :user, :char_id)
                     """
                 ),
-                [{"battle": battle_id,
-                  "user": user_id}]
+                [{
+                    "battle": battle_id,
+                    "user": user_id,
+                    "char_id": character_id}]
             )
         else:
-            raise HTTPException(status_code=400, detail="Character not in battle")
+            raise HTTPException(status_code=400, detail=f"Character with id {character_id} is not part of battle {battle_id}")
         
     return BattleVoteResponse(
         message=f"User {user_id} has successfully voted",
         battle_id=battle_id,
-        character_id=character_id,
+        char_id=character_id,
     )
 
 @router.post("/make", response_model=BattleCreateResponse)
@@ -417,8 +442,8 @@ def create_battle(Battle: Battle):
         raise HTTPException(status_code=400, detail="Character 1 ID cannot be None")
     if Battle.char2_id is None:
         raise HTTPException(status_code=400, detail="Character 2 ID cannot be None")
-    if Battle.duration <= 0:
-        raise HTTPException(status_code=400, detail="Battle duration must be greater than 0")
+    if Battle.duration < 0:
+        raise HTTPException(status_code=400, detail="Battle duration must not be negative")
     if Battle.user_id is None:
         raise HTTPException(status_code=400, detail="User ID cannot be None")
         

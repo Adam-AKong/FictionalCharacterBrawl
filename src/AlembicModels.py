@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, func
+from sqlalchemy import Column, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.sql.functions import now
 
 Base = declarative_base()
@@ -22,6 +22,11 @@ class C_Review(Base):
     comment = Column(String(500), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
     
+    # This is a unique constraint to ensure that a user can only review a character once
+    __table_args__ = (
+        UniqueConstraint('user_id', 'char_id', name='uq_user_char_review'),
+    )
+    
     
 class F_Review(Base):
     __tablename__ = "f_review"
@@ -31,6 +36,11 @@ class F_Review(Base):
     franchise_id = Column(Integer, ForeignKey('franchise.id'), nullable=False)
     comment = Column(String(500), nullable=False)
     created_at = Column(DateTime, server_default=func.now())
+    
+    # This is a unique constraint to ensure that a user can only review a franchise once
+    __table_args__ = (
+        UniqueConstraint('user_id', 'franchise_id', name='uq_user_fran_review'),
+    )
     
     
 class Character(Base):
