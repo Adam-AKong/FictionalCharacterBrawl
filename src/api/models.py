@@ -87,3 +87,7 @@ class BattleVoteResponse(BaseModel):
 class User(BaseModel):
     id: int
     name: str
+
+class User_Favorites(BaseModel):
+    favorite_character_id: Optional[int]
+    favorite_franchise_id: Optional[int]

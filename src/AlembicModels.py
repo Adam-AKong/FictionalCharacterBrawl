@@ -10,6 +10,8 @@ class User(Base):
     
     id = Column(Integer, primary_key=True)
     name = Column(String(30), unique=True, nullable=False)
+    fav_char_id = Column(Integer, ForeignKey('character.id'), nullable=True)
+    fav_fran_id = Column(Integer, ForeignKey('franchise.id'), nullable=True)
     createed_at = Column(DateTime, server_default=func.now())
 
     

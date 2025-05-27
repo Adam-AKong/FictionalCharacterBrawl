@@ -6,7 +6,10 @@ from src import database as db
 from datetime import datetime
 from src.api import auth
 
-from src.api.models import User
+from src.api.models import User, User_Favorites
+from src.api.character import get_character_by_id
+from src.api.franchise import get_franchise_by_id
+
 
 router = APIRouter(
     prefix="/user", 
@@ -112,3 +115,80 @@ def make_user(name: str):
 
         return new_user
     
+
+@router.post("/favorite/character")
+def set_favorite_character(user_id: int, char_id: int):
+    """
+    Sets a user's favorite character.
+    """
+
+    #Checks to see if the user and character exist, should error if they dont
+    get_user(user_id)
+    get_character_by_id(char_id) 
+
+    with db.engine.begin() as connection:
+        connection.execute(
+            sqlalchemy.text("""
+                UPDATE "user"
+                SET fav_char_id = :char_id
+                WHERE id = :user_id
+            """), 
+            {
+                "char_id": char_id,
+                "user_id": user_id
+            }
+        )
+
+    return {"message": "Favorite character was set"}
+
+
+@router.post("/favorite/franchise")
+def set_favorite_franchise(user_id: int, fran_id: int):
+    """
+    Sets a user's favorite franchise.
+    """
+
+    #Also checks like the previous
+    get_user(user_id)
+    get_franchise_by_id(fran_id)
+
+    with db.engine.begin() as connection:
+        connection.execute(
+            sqlalchemy.text("""
+                UPDATE "user"
+                SET fav_fran_id = :fran_id
+                WHERE id = :user_id
+            """),
+            {
+                "fran_id": fran_id,
+                "user_id": user_id
+            }
+        )
+
+    return {"message": "Favorite franchise was set"}
+
+
+@router.get("/favorite/character", response_model=User_Favorites)
+def get_favorites(user_id: int):
+    """
+    Gets a user's favorite character and franchise.
+    """
+    with db.engine.begin() as connection:
+        result = connection.execute(
+            sqlalchemy.text("""
+                SELECT fav_char_id, fav_fran_id
+                FROM "user"
+                WHERE id = :user_id
+            """),
+            {
+                "user_id": user_id
+            }
+        ).first()
+
+        if not result:
+            raise HTTPException(status_code=404, detail=f"User with id={user_id} not found")
+
+        return User_Favorites(
+            favorite_character_id=result.fav_char_id,
+            favorite_franchise_id=result.fav_fran_id
+        )
