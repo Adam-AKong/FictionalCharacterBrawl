@@ -1,9 +1,7 @@
 import re
 from fastapi import APIRouter, HTTPException, status, Depends
-from pydantic import BaseModel
 import sqlalchemy
 from src import database as db
-from datetime import datetime
 from src.api import auth
 
 from src.api.models import User, User_Favorites
@@ -35,7 +33,7 @@ def get_user(user_id: int):
             {
              "user_id": user_id,
              },
-        ).scalar_one_or_none()
+        ).one_or_none()
     
         if user is None:
             raise HTTPException(status_code=404, detail=f"User with id={user_id} not found")
@@ -57,7 +55,7 @@ def get_user_by_name(username: str):
             {
              "username": username,
              },
-        ).scalar_one_or_none()
+        ).one_or_none()
     
         if user is None:
             raise HTTPException(status_code=404, detail=f"User with name={username} not found")

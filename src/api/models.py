@@ -34,6 +34,11 @@ class Franchise(BaseModel):
     name: str
     description: str
     
+class FranchiseReturnResponse(BaseModel):
+    id: int
+    name: str
+    description: str
+    
 class FranchiseMakeResponse(BaseModel):
     id: int
     name: str
@@ -49,11 +54,7 @@ class C_Review(BaseModel):
     
 class F_Review(BaseModel):
     user_id: int
-    franchise_id: int
-    comment: str
-    
-class Returned_Review(BaseModel):
-    user_id: int
+    fran_id: int
     comment: str
     
 class Battle(BaseModel):
@@ -72,6 +73,7 @@ class BattleCreateResponse(BaseModel):
     
 class BattleResult(BaseModel):
     battle_id: int
+    user_id: int
     char1_id: int
     char2_id: int
     winner_id: Optional[int]

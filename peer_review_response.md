@@ -64,7 +64,7 @@ However, it could be an interesting idea to implement a franchise power stat whi
 ## Code Review
 # Spencer perley
 1. Constraints are added to make it so if duplicate Names are sent, it will send an error as Username is unique now
-2. Added checks to database calls and returns exceptions if errors occur
+2. Changing some of the .one_or_none() to .scalar_one is just not needed. They are two separate data return calls and should not be treated the same. We specifically want to return one row or none so we can raise an exception. We don't want to return only one column when we need the entire row.
 3. Uneccessary Comments are now removed
 4. Names now have constraints applied
 5. Descriptive responses are now sent
@@ -92,3 +92,31 @@ However, it could be an interesting idea to implement a franchise power stat whi
 11. Not sure what checks for arguments we need to have as no examples were given.
 12. uv run main.py now works
 13. Not entirely sure what you mean by "not returning a User class". The endpoints are returning the pydantic model of User which provides the id and the username of that specific User.
+
+# Julianne Legados
+1. Good catch, removing the redudant /user when it is already /user is a good idea to make the routes cleaner
+2. The votes are now aggregated to avoid multiple sources of truth and to prevent two people clicking fast and voting multiple times
+3. Good catch on the concurrency problem for battles. We will make sure to fix that in order to prevent race conditions
+4. Changing Battle: Battle into battle_data: Battle is a good idea. It definitely can be confusing when using the same symbol names
+5. A helper function is now used to cleanup repetative lines of codes for the 3 endpoints of getting information on battles
+6. Unit tests for the most part are uneccessary since it is all database calls. However, I have now changed the helper function of calculating the winner to avoid database calls and unit tests can be run for that.
+7. It's a good idea to add a __repr__ for printing, however, its not a necessary change to make since the print functions will be getting removed in the end anyways.
+8. Checks for if a character/franchise/user/battle are now in place
+9. The variable mismatch is now resolved and it will properly use {character_id} which is consistent with all the other endpoints
+10. Constraints are added to make sure the values are not negative or 0. Users are allowed to make their character as strong as they want though.
+11. Duplicate names for users are now being checked for.
+12. Since users have to input in the value of duration and the duration field is mandatory, I don't believe we need to specify a default value since the user gets to decide (as long as it is greater than 0 and there are now checks for that as well)
+
+# Ivan Alvarez
+1. The Readme is now updated
+2. If the table is trying to be created when it already exists, that means you already have a table under that port. That means you need to assign the database to a different port.
+3. Docstrings to AlembicModels.py is a good idea
+4. Removing uneccessary imports is a good idea
+5. Removing commented which are unused code is a good idea
+6. Removing Programmer notes that are not neccessary anymore is a good idea
+7. Removing uneccessary alembic files is a good idea
+8. Resolved the issue that was preventing us from doing uv run main.py
+9. server.py has been added
+10. Unit tests are uneccessary for a majority of the codebase as it is all database calls. However, the newly changed helper function to calculate Battle Winner has been modified to allow for unit tests
+11. Proper HTTPExceptions have been added to provide useful information when errors occur
+12. API Keys have been added

@@ -1,19 +1,15 @@
-import re
 from fastapi import APIRouter, HTTPException, status, Depends
-from pydantic import BaseModel
 import sqlalchemy
 from src import database as db
 from src.api import auth
 
-from src.api.models import Franchise, FranchiseMakeResponse, Returned_Review
+from src.api.models import Franchise, FranchiseMakeResponse
 
 router = APIRouter(
     prefix="/franchise", 
     tags=["Franchise"],
     dependencies=[Depends(auth.get_api_key)],)
 
-
-USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 @router.get("/by_id/{franchise_id}", response_model=FranchiseMakeResponse)
 def get_franchise_by_id(franchise_id: int):
@@ -31,7 +27,7 @@ def get_franchise_by_id(franchise_id: int):
             {
                 "id": franchise_id
                 }
-        ).scalar_one_or_none()
+        ).one_or_none()
         
         if franchise is None:
             raise HTTPException(status_code=404, detail=f"Franchise with id={franchise_id} not found")
@@ -59,9 +55,9 @@ def get_franchise_by_name(franchise_name: str):
             {
                 "franchise_name": franchise_name
                 }
-        ).scalar_one()
+        ).one_or_none()
         
-        if not franchise:
+        if franchise is None:
             raise HTTPException(status_code=404, detail=f"Franchise with name '{franchise_name}' not found")
         
         return FranchiseMakeResponse(
@@ -75,12 +71,13 @@ def make_franchise(franchise: Franchise):
     """
     Create a new franchise.
     """
-
-    if not USERNAME_REGEX.fullmatch(franchise.name):
-        raise HTTPException(
-            status_code=400,
-            detail="Franchise must only contain letters, numbers, dashes, or underscores"
-        )
+    
+    if not franchise.name:
+        raise HTTPException(status_code=400, detail="Franchise name cannot be empty")
+    if not franchise.description:
+        raise HTTPException(status_code=400, detail="Franchise description cannot be empty")
+    
+    
     with db.engine.begin() as connection:
         # check if franchise name already exists
         existing_franchise = connection.execute(
@@ -93,6 +90,7 @@ def make_franchise(franchise: Franchise):
                 "name": franchise.name,
             },
         ).scalar_one_or_none()
+        
         if existing_franchise is not None:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

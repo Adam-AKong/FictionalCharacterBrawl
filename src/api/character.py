@@ -1,18 +1,14 @@
-import re
-from fastapi import APIRouter, HTTPException, status, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Depends
 import sqlalchemy
 from src import database as db
 
-from src.api.models import Character, CharacterMakeResponse, Franchise, FranchiseCharacterAssignment, ReturnedCharacter
+from src.api.models import Character, CharacterMakeResponse, FranchiseCharacterAssignment, FranchiseReturnResponse, ReturnedCharacter
 from src.api import auth
 
 router = APIRouter(
     prefix="/character", 
     tags=["Character"],
     dependencies=[Depends(auth.get_api_key)],)
-
-USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_-]+$")
 
 @router.get("/by_id/{character_id}", response_model=ReturnedCharacter)
 def get_character_by_id(character_id: int):
@@ -31,9 +27,9 @@ def get_character_by_id(character_id: int):
             {
                 "id": character_id
             }
-        ).scalar_one()
+        ).one_or_none()
         
-        if not character:
+        if character is None:
             raise HTTPException(status_code=404, detail=f"Character with id={character_id} not found")
         
         the_character = ReturnedCharacter(
@@ -57,6 +53,21 @@ def get_user_characters(user_id: int):
     """
 
     with db.engine.begin() as connection:
+        # Check if user exists
+        user_exists = connection.execute(
+            sqlalchemy.text("""
+                SELECT id
+                FROM "user"
+                WHERE id = :user_id
+            """),
+            {
+                "user_id": user_id
+            }
+        ).one_or_none()
+        
+        if user_exists is None:
+            raise HTTPException(status_code=404, detail=f"User with id={user_id} not found")
+        
         characters = connection.execute(
             sqlalchemy.text("""
                 SELECT id, user_id, name, description, rating, strength, speed, health
@@ -135,19 +146,17 @@ def make_character(user_id: int, character: Character, franchiselist: list[Franc
     """
     Create a new character.
     """
-    # Wall of Contraints on what a valid input is lol
-    if not USERNAME_REGEX.fullmatch(character.name):
-        raise HTTPException(status_code=400, detail="Character Name must only contain letters, numbers, dashes, or underscores")     
+    # Wall of Contraints on what a valid input is lol   
     if not character.name:
         raise HTTPException(status_code=400, detail="Character name cannot be empty")
     if not character.description:
         raise HTTPException(status_code=400, detail="Character description cannot be empty")
-    if character.strength < 0:
-        raise HTTPException(status_code=400, detail="Character strength cannot be negative")
-    if character.speed < 0:
-        raise HTTPException(status_code=400, detail="Character speed cannot be negative")
-    if character.health < 0:
-        raise HTTPException(status_code=400, detail="Character health cannot be negative")
+    if character.strength <= 0:
+        raise HTTPException(status_code=400, detail="Character strength cannot be negative or zero")
+    if character.speed <= 0:
+        raise HTTPException(status_code=400, detail="Character speed cannot be negative or zero")
+    if character.health <= 0:
+        raise HTTPException(status_code=400, detail="Character health cannot be negative or zero")
     if not franchiselist:
         raise HTTPException(status_code=400, detail="Character must be assigned to at least one franchise")
     
@@ -181,7 +190,7 @@ def make_character(user_id: int, character: Character, franchiselist: list[Franc
                 {
                     "franchise_id": franchise.franchise_id
                 }
-            ).scalar_one()
+            ).one_or_none()
             
             if not franchise_id:
                 raise HTTPException(status_code=404, detail=f"Franchise id={franchise} not found")
@@ -211,15 +220,30 @@ def make_character(user_id: int, character: Character, franchiselist: list[Franc
 
         return new_character
 
-@router.get("/franchise/{character_id}", response_model=list[Franchise])
+@router.get("/franchise/{character_id}", response_model=list[FranchiseReturnResponse])
 def get_character_franchises(character_id: int):
     """
     Get all franchises for a given character referencing its id.
     """
     with db.engine.begin() as connection:
+        # Check if character exists
+        character_exists = connection.execute(
+            sqlalchemy.text("""
+                SELECT id
+                FROM character
+                WHERE id = :char_id
+            """),
+            {
+                "char_id": character_id
+            }
+        ).one_or_none()
+        
+        if character_exists is None:
+            raise HTTPException(status_code=404, detail=f"Character with id={character_id} not found")
+        
         franchises = connection.execute(
             sqlalchemy.text("""
-                SELECT f.name, f.description
+                SELECT f.id, f.name, f.description
                 FROM franchise f
                 JOIN char_fran cf ON f.id = cf.franchise_id
                 WHERE cf.char_id = :char_id
@@ -235,7 +259,8 @@ def get_character_franchises(character_id: int):
         all_franchises = []
         for franchise in franchises:
             all_franchises.append(
-                Franchise(
+                FranchiseReturnResponse(
+                    id = franchise.id,
                     name = franchise.name,
                     description = franchise.description
                 )
