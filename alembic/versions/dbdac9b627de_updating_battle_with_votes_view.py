@@ -51,7 +51,6 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
-    pass
     op.execute(
     """
     DROP VIEW IF EXISTS battle_with_votes;
