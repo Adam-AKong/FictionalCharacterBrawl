@@ -1,7 +1,7 @@
 """add favorites columns to users
 
 Revision ID: 6cdb5f2e41d5
-Revises: 9451e3247e5a
+Revises: dbdac9b627de
 Create Date: 2025-05-25 17:00:28.887426
 
 """
@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
 revision: str = '6cdb5f2e41d5'
-down_revision: Union[str, None] = '9451e3247e5a'
+down_revision: Union[str, None] = 'dbdac9b627de'
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
