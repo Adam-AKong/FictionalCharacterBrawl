@@ -31,100 +31,103 @@ def calculate_winner(connection, battle) -> int:
     """
     Calculate the winner of a battle based on the votes and character stats.
     """
-    character1 = connection.execute(
-        sqlalchemy.text(
-            """
-            SELECT *
-            FROM character
-            WHERE id = :id
-            """
-        ),
-        [{"id": battle.char1_id}]
-    ).one()
-
-    character2 = connection.execute(
-        sqlalchemy.text(
-            """
-            SELECT *
-            FROM character
-            WHERE id = :id
-            """
-        ),
-        [{"id": battle.char2_id}]
-    ).one()
-    
-
-    character1_score = calculate_score(
-        character2.health, 
-        character1.strength, 
-        character1.speed, 
-        battle.vote1
-    )
-    character2_score = calculate_score(
-        character1.health, 
-        character2.strength, 
-        character2.speed, 
-        battle.vote2
-    )
-    if character1_score < character2_score:
-        # Character 1 wins
-        # Increase the rating of the winner
-        connection.execute(
+    with db.engine.begin() as connection:
+        character1 = connection.execute(
             sqlalchemy.text(
                 """
-                UPDATE character
-                SET rating = rating + 1
+                SELECT *
+                FROM character
                 WHERE id = :id
                 """
             ),
             [{"id": battle.char1_id}]
-        )
-        return battle.char1_id
-    elif character1_score > character2_score:
-        # Character 2 wins
-        # Increase the rating of the winner
-        connection.execute(
+        ).one()
+
+        character2 = connection.execute(
             sqlalchemy.text(
                 """
-                UPDATE character
-                SET rating = rating + 1
+                SELECT *
+                FROM character
                 WHERE id = :id
                 """
             ),
             [{"id": battle.char2_id}]
-        )
-        return battle.char2_id
-    else:
-        # It's a tie, randomize the winner
-        winner_id = battle.char1_id if random.randint(0, 1) == 0 else battle.char2_id
-        connection.execute(
-            sqlalchemy.text(
-                """
-                UPDATE character
-                SET rating = rating + 1
-                WHERE id = :id
-                """
-            ),
-            [{"id": winner_id}]
-        )
-        return winner_id
+        ).one()
         
+
+        character1_score = calculate_score(
+            character2.health, 
+            character1.strength, 
+            character1.speed, 
+            battle.vote1
+        )
+        character2_score = calculate_score(
+            character1.health, 
+            character2.strength, 
+            character2.speed, 
+            battle.vote2
+        )
+
+        if character1_score < character2_score:
+            # Character 1 wins
+            # Increase the rating of the winner
+            connection.execute(
+                sqlalchemy.text(
+                    """
+                    UPDATE character
+                    SET rating = rating + 1
+                    WHERE id = :id
+                    """
+                ),
+                [{"id": battle.char1_id}]
+            )
+            return battle.char1_id
+        elif character1_score > character2_score:
+            # Character 2 wins
+            # Increase the rating of the winner
+            connection.execute(
+                sqlalchemy.text(
+                    """
+                    UPDATE character
+                    SET rating = rating + 1
+                    WHERE id = :id
+                    """
+                ),
+                [{"id": battle.char2_id}]
+            )
+            return battle.char2_id
+        else:
+            # It's a tie, randomize the winner
+            winner_id = battle.char1_id if random.randint(0, 1) == 0 else battle.char2_id
+            connection.execute(
+                sqlalchemy.text(
+                    """
+                    UPDATE character
+                    SET rating = rating + 1
+                    WHERE id = :id
+                    """
+                ),
+                [{"id": winner_id}]
+            )
+            return winner_id
+            
 def update_winner(connection, battle):
     """
     Update the winner of a battle in the database.
     """
     winner = calculate_winner(connection, battle)
-    connection.execute(
-        sqlalchemy.text(
-            """
-            UPDATE battle
-            SET winner_id = :winner
-            WHERE id = :id
-            """
-        ),
-        [{"winner": winner, "id": battle.id}]
-    )
-    return winner
+    with db.engine.begin() as connection:
+        connection.execute(
+            sqlalchemy.text(
+                """
+                UPDATE battle
+                SET winner_id = :winner
+                WHERE id = :id
+                """
+            ),
+            [{"winner": winner, "id": battle.id}]
+        )
+        return winner
 
 @router.get("/battle/{battle_id}", response_model=BattleResult)
 def get_battle_result(battle_id: int):
@@ -138,6 +141,7 @@ def get_battle_result(battle_id: int):
                 SELECT *
                 FROM battle_with_votes
                 WHERE id = :id
+                FOR UPDATE
                 """
             ),
             [{"id": battle_id}]
@@ -433,7 +437,6 @@ def create_battle(battle_data: Battle):
     """
     # Assuming duration is in hours
     
-    
     if battle_data.char1_id == battle_data.char2_id:
         raise HTTPException(status_code=400, detail="Cannot create a battle with the same character")
     if battle_data.char1_id is None:
@@ -444,7 +447,6 @@ def create_battle(battle_data: Battle):
         raise HTTPException(status_code=400, detail="Battle duration must not be negative")
     if battle_data.user_id is None:
         raise HTTPException(status_code=400, detail="User ID cannot be None")
-        
     
     start_time = datetime.now()
     end_time = start_time + timedelta(hours=battle_data.duration)
