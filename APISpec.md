@@ -1,8 +1,8 @@
 <h1>API Specifications</h1>
 
-<p>Project Members: Adam Kong, Brian Kaplan, Vic Grigoryev</p>
+<p>Project Members: Adam Kong, Brian Kaplan, Vic Grigoryev, William Pierce</p>
 
-<h5>Cal Poly Email: aakong@calpoly.edu, bhkaplan@calpoly.edu, vgrigory@calpoly.edu</h5>
+<h5>Cal Poly Email: aakong@calpoly.edu, bhkaplan@calpoly.edu, vgrigory@calpoly.edu, wqpierce@calpoly.edu</h5>
 
 <h3> Endpoint 1</h3>
 
