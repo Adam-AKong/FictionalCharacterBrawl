@@ -319,7 +319,8 @@ Get all reviews for a given franchise referencing its id.
 ## GET /battle/battle/{battle_id}
 
 **Description:**  
-Get the result of a battle by its ID.
+Get the result of a battle by its ID. 
+Can be complex because it involves the retrieval and setting of the winner_id if it is none and the battle hasn't been queried since its completion.
 
 **Response Example:**
 
@@ -387,6 +388,7 @@ Get a list of battles a user has participated in.
 
 **Description:**  
 Vote for a character during an active battle.
+User existence, battle existence, characters in battle, duplicate voting, and active battle time-based logic. 
 
 **Response Example:**
 
