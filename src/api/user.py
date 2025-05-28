@@ -25,14 +25,16 @@ def get_user(user_id: int):
     """
     with db.engine.begin() as connection:
         user = connection.execute(
-            sqlalchemy.text("""
+            sqlalchemy.text(
+                """
                 SELECT *
                 FROM "user"
                 WHERE id = :user_id
-            """),
+                """
+                ),
             {
-             "user_id": user_id,
-             },
+                "user_id": user_id,
+            },
         ).one_or_none()
     
         if user is None:
@@ -47,18 +49,21 @@ def get_user_by_name(username: str):
     """
     with db.engine.begin() as connection:
         user = connection.execute(
-            sqlalchemy.text("""
+            sqlalchemy.text(
+                """
                 SELECT *
                 FROM "user"
                 WHERE name = :username
-            """),
+                """
+            ),
             {
-             "username": username,
-             },
+                "username": username,
+            },
         ).one_or_none()
     
         if user is None:
             raise HTTPException(status_code=404, detail=f"User with name={username} not found")
+        
         return user
 
 @router.post("/make", response_model=User)
@@ -76,34 +81,38 @@ def make_user(name: str):
         )
     
     # Save the user to the database
-    with db.engine.begin() as connection:
-        
+    with db.engine.begin() as connection: 
         # Check if the user already exists
         existing_user = connection.execute(
-            sqlalchemy.text("""
+            sqlalchemy.text(
+                """
                 SELECT id
                 FROM "user"
                 WHERE name = :name
-            """),
+                """
+                ),
             {
              "name": name,
              },
         ).scalar_one_or_none()
-        if existing_user is not None:
+
+        if existing_user:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"User with name '{name}' already exists"
             )
     
         user_id = connection.execute(
-            sqlalchemy.text("""
+            sqlalchemy.text(
+                """
                 INSERT INTO "user" (name)
                 VALUES (:name)
                 RETURNING id
-            """),
+                """
+                ),
             {
-             "name": name,
-             },
+                "name": name,
+            },
         ).scalar_one()
     
         new_user = User(
@@ -119,18 +128,19 @@ def set_favorite_character(user_id: int, char_id: int):
     """
     Sets a user's favorite character.
     """
-
     #Checks to see if the user and character exist, should error if they dont
     get_user(user_id)
     get_character_by_id(char_id) 
 
     with db.engine.begin() as connection:
         connection.execute(
-            sqlalchemy.text("""
+            sqlalchemy.text(
+                """
                 UPDATE "user"
                 SET fav_char_id = :char_id
                 WHERE id = :user_id
-            """), 
+                """
+                ), 
             {
                 "char_id": char_id,
                 "user_id": user_id
@@ -145,18 +155,19 @@ def set_favorite_franchise(user_id: int, fran_id: int):
     """
     Sets a user's favorite franchise.
     """
-
     #Also checks like the previous
     get_user(user_id)
     get_franchise_by_id(fran_id)
 
     with db.engine.begin() as connection:
         connection.execute(
-            sqlalchemy.text("""
+            sqlalchemy.text(
+                """
                 UPDATE "user"
                 SET fav_fran_id = :fran_id
                 WHERE id = :user_id
-            """),
+                """
+                ),
             {
                 "fran_id": fran_id,
                 "user_id": user_id
@@ -173,11 +184,13 @@ def get_favorites(user_id: int):
     """
     with db.engine.begin() as connection:
         result = connection.execute(
-            sqlalchemy.text("""
+            sqlalchemy.text(
+                """
                 SELECT fav_char_id, fav_fran_id
                 FROM "user"
                 WHERE id = :user_id
-            """),
+                """
+                ),
             {
                 "user_id": user_id
             }
