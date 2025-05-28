@@ -6,214 +6,397 @@
 
 <h3> Endpoint 1</h3>
 
-## GET /character/get/{character_id}
+## GET /character/by_id/{character_id}
 
 **Description:**  
-Returns the character information of the id provided
+Get character by ID.
 
 **Response Example:**
 
-Note: some of these fields are subject to change
 ```json
-[
-  {
-    "character_id": 1,
-    "name": "Superman",
-    "description": "a comic book character from the planet Krypton. He can fly, has super strength, and has laser eyes",
-    "rating": 8.6,
-    "strength": 10
-    "speed": 9,
-    "health": 100
-  }
-]
+{
+  "char_id": 0,
+  "user_id": 0,
+  "name": "string",
+  "description": "string",
+  "rating": 0,
+  "strength": 0,
+  "speed": 0,
+  "health": 0
+}
 ```
 <h3> Endpoint 2</h3>
 
-## POST /character/review
+## GET /character/list/{user_id}
 
 **Description:**  
-Allows a user to post a review of the character
+Get all characters made by user.
 
 **Response Example:**
 
-Note: some of these fields are subject to change
 ```json
 [
   {
-    "character_id": 1,
-    "name": "Superman",
-    "rating": 9,
-    "comments": "Superman is a really cool character that I really like because he is Super!"
+    "char_id": 0,
+    "user_id": 0,
+    "name": "string",
+    "description": "string",
+    "rating": 0,
+    "strength": 0,
+    "speed": 0,
+    "health": 0
   }
 ]
 ```
 <h3> Endpoint 3</h3>
 
-## POST /battle/characters/{character_1}/{character_2}
+## GET /character/leaderboard
 
-**Description:**  
-Allows a user to get the results of a battle between 2 selected characters
+**Description:**
+Get the leaderboard of characters.
 
 **Response Example:**
 
-Note: some of these fields are subject to change
 ```json
 [
   {
-    "character_id": 1,
-    "name": "Superman"
-  },
- {
-    "character_id": 2,
-    "name": "Batman"
+    "char_id": 0,
+    "user_id": 0,
+    "name": "string",
+    "description": "string",
+    "rating": 0,
+    "strength": 0,
+    "speed": 0,
+    "health": 0
   }
 ]
 ```
 <h3> Endpoint 4</h3>
 
-## POST /battle/vote/{battle_id}/{selected_character}
+## POST /character/make
 
 **Description:**
-Allows the user to vote for a character during a battle
+Create a new character.
 
 **Response Example:**
 
-Note: some of these fields are subject to change
 ```json
-[
-  {
-    "battle_id": 1,
-    "character_vote": 1
-  }
-]
+{
+  "character": {
+    "name": "string",
+    "description": "string",
+    "strength": 0,
+    "speed": 0,
+    "health": 0
+  },
+  "franchiselist": [
+    {
+      "franchise_id": 0
+    }
+  ]
+}
 ```
 <h3> Endpoint 5</h3>
 
-## POST /character/make/
+## GET /character/franchise/{character_id}
 
 **Description:**
-Allows the user to create a character that is linked to their user id
+Get all franchises for a given character referencing its id.
 
 **Response Example:**
 
-Note: some of these fields are subject to change
 ```json
 [
   {
-    "character_id": 2,
-    "user_id": 1,
-    "description": "A wealthy guy who patrols the streets of Gotham at night for justice. He is very strong and smart and will stop at nothing to achieve his goals.",
-    "strength": 7,
-    "speed": 6,
-    "health": 100
+    "id": 0,
+    "name": "string",
+    "description": "string"
   }
 ]
 ```
 <h3> Endpoint 6</h3>
 
-## GET /character/list/{user_id}
+## GET /franchise/by_id/{franchise_id}
 
 **Description:**
-Allows the user to get a list of characters created based on a user's id
+Get franchise by ID.
 
 **Response Example:**
 
-Note: some of these fields are subject to change
 ```json
-[
-  {
-    "character_id": 1
-  }
-  {
-    "character_id": 2
-  }
-]
+{
+  "id": 0,
+  "name": "string",
+  "description": "string"
+}
 ```
 <h3> Endpoint 7</h3>
 
-## GET /franchise/get/{franchise_id}
+## GET /franchise/by_name/{franchise_name}
 
 **Description:**
-Allows the user to get a list of characters based a franchise
+Get franchise by name.
 
 **Response Example:**
 
-Note: some of these fields are subject to change
 ```json
-[
-  {
-    "character_id": 99,
-    "name": "Iron Man",
-    "description": "Genius. Billionaire. Philanthropist.",
-    "rating": 9.2,
-    "strength": 5
-    "speed": 19,
-    "health": 100
-  }
-]
-[
-  {
-    "character_id": 100,
-    "name": "Captain America",
-    "description": "World War 2 Hero, the First Avenger",
-    "rating": 8.9,
-    "strength": 9
-    "speed": 10,
-    "health": 100
-  }
-]
+{
+  "id": 0,
+  "name": "string",
+  "description": "string"
+}
 ```
-
 <h3> Endpoint 8</h3>
 
-## GET /battle/user/{user_id}
+## POST /franchise/make
 
 **Description:**
-Returns a list of the battles the user has participated in
+Create a new franchise.
 
 **Response Example:**
 
-Note: some of these fields are subject to change
+```json
+{
+  "id": 0,
+  "name": "string",
+  "description": "string"
+}
+```
+<h3> Endpoint 9</h3>
+
+## GET /user/by_id/{user_id}
+
+**Description:**  
+Get User by ID.
+
+**Response Example:**
+
+```json
+{
+  "id": 0,
+  "name": "string"
+}
+```
+<h3> Endpoint 10</h3>
+## GET /user/by_name/{username}
+
+**Description:**  
+Get User by name.
+
+**Response Example:**
+
+```json
+{
+  "id": 0,
+  "name": "string"
+}
+```
+<h3> Endpoint 11</h3>
+## POST /user/make
+
+**Description:**  
+Make a new user.
+
+**Response Example:**
+
+```json
+{
+  "id": 0,
+  "name": "string"
+}
+```
+<h3> Endpoint 12</h3>
+## POST /user/favorite/character
+
+**Description:**  
+Sets a user's favorite character.
+
+**Response Example:**
+
+```json
+"Favorite character was set"
+```
+<h3> Endpoint 13</h3>
+## GET /user/favorite/character
+
+**Description:**  
+Gets a user's favorite character and franchise.
+
+**Response Example:**
+
+```json
+{
+  "favorite_character_id": 0,
+  "favorite_franchise_id": 0
+}
+```
+<h3> Endpoint 14</h3>
+## POST /user/favorite/franchise
+
+**Description:**  
+Sets a user's favorite franchise.
+
+**Response Example:**
+
+```json
+"Favorite franchise was set"
+```
+<h3> Endpoint 15</h3>
+## POST /review/character/create
+
+**Description:**  
+Review a character.
+
+**Response Example:**
+
+```json
+{
+  "user_id": 0,
+  "char_id": 0,
+  "comment": "string"
+}
+```
+<h3> Endpoint 16</h3>
+## GET /review/character/list/{character_id}
+
+**Description:**  
+Get all reviews for a given character referencing its id.
+
+**Response Example:**
+
 ```json
 [
   {
-    "battle_id": 1,
-    "character_id": 99,
-    "opponent_id": 100,
-    "result": "loss"
-  },
-  {
-    "battle_id": 1,
-    "character_id": 1,
-    "opponent_id": 2,
-    "result": "win"
+    "user_id": 0,
+    "char_id": 0,
+    "comment": "string"
   }
 ]
 ```
+<h3> Endpoint 17</h3>
+## POST /review/franchise/create
 
-<h3> Endpoint 9</h3>
-
-## GET /character/leaderboard
-
-**Description:**
-Returns a ranked list of characters based on ratings and wins.
+**Description:**  
+Make a review for a franchise.
 
 **Response Example:**
 
-Note: some of these fields are subject to change
+```json
+{
+  "user_id": 0,
+  "fran_id": 0,
+  "comment": "string"
+}
+```
+<h3> Endpoint 18</h3>
+## GET /review/franchise/list/{franchise_id}
+
+**Description:**  
+Get all reviews for a given franchise referencing its id.
+
+**Response Example:**
+
 ```json
 [
   {
-    "character_id": 1,
-    "name": "Superman",
-    "rating": 9,
-    "wins": 10
-  },
-  {
-    "character_id": 2,
-    "name": "Batman",
-    "rating": 8.8,
-    "wins": 7
+    "user_id": 0,
+    "fran_id": 0,
+    "comment": "string"
   }
 ]
+```
+<h3> Endpoint 19</h3>
+## GET /battle/battle/{battle_id}
+
+**Description:**  
+Get the result of a battle by its ID.
+
+**Response Example:**
+
+```json
+{
+  "battle_id": 0,
+  "user_id": 0,
+  "char1_id": 0,
+  "char2_id": 0,
+  "winner_id": 0,
+  "start": "2025-05-28T02:28:36.275Z",
+  "end": "2025-05-28T02:28:36.275Z",
+  "finished": true
+}
+```
+<h3> Endpoint 20</h3>
+## GET /battle/character/{character_id}
+
+**Description:**  
+Get a list of battles a character has fought in.
+
+**Response Example:**
+
+```json
+[
+  {
+    "battle_id": 0,
+    "user_id": 0,
+    "char1_id": 0,
+    "char2_id": 0,
+    "winner_id": 0,
+    "start": "2025-05-28T02:28:58.198Z",
+    "end": "2025-05-28T02:28:58.198Z",
+    "finished": true
+  }
+]
+```
+<h3> Endpoint 21</h3>
+## GET /battle/user/{user_id}
+
+**Description:**  
+Get a list of battles a user has participated in.
+
+**Response Example:**
+
+```json
+[
+  {
+    "battle_id": 0,
+    "user_id": 0,
+    "char1_id": 0,
+    "char2_id": 0,
+    "winner_id": 0,
+    "start": "2025-05-28T02:29:38.912Z",
+    "end": "2025-05-28T02:29:38.912Z",
+    "finished": true
+  }
+]
+```
+<h3> Endpoint 22</h3>
+## POST /battle/vote/{user_id}/{battle_id}/{character_id}
+
+**Description:**  
+Vote for a character during an active battle.
+
+**Response Example:**
+
+```json
+{
+  "message": "string",
+  "battle_id": 0,
+  "char_id": 0
+}
+```
+<h3> Endpoint 23</h3>
+## POST /battle/make
+
+**Description:**  
+Create a battle between two characters and return its id.
+
+**Response Example:**
+
+```json
+{
+  "user_id": 0,
+  "char1_id": 0,
+  "char2_id": 0,
+  "duration": 0
+}
 ```
