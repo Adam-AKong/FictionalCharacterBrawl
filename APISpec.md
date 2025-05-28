@@ -178,6 +178,7 @@ Get User by ID.
 }
 ```
 <h3> Endpoint 10</h3>
+
 ## GET /user/by_name/{username}
 
 **Description:**  
@@ -192,6 +193,7 @@ Get User by name.
 }
 ```
 <h3> Endpoint 11</h3>
+
 ## POST /user/make
 
 **Description:**  
@@ -206,6 +208,7 @@ Make a new user.
 }
 ```
 <h3> Endpoint 12</h3>
+
 ## POST /user/favorite/character
 
 **Description:**  
@@ -217,6 +220,7 @@ Sets a user's favorite character.
 "Favorite character was set"
 ```
 <h3> Endpoint 13</h3>
+
 ## GET /user/favorite/character
 
 **Description:**  
@@ -231,6 +235,7 @@ Gets a user's favorite character and franchise.
 }
 ```
 <h3> Endpoint 14</h3>
+
 ## POST /user/favorite/franchise
 
 **Description:**  
@@ -242,6 +247,7 @@ Sets a user's favorite franchise.
 "Favorite franchise was set"
 ```
 <h3> Endpoint 15</h3>
+
 ## POST /review/character/create
 
 **Description:**  
@@ -257,6 +263,7 @@ Review a character.
 }
 ```
 <h3> Endpoint 16</h3>
+
 ## GET /review/character/list/{character_id}
 
 **Description:**  
@@ -274,6 +281,7 @@ Get all reviews for a given character referencing its id.
 ]
 ```
 <h3> Endpoint 17</h3>
+
 ## POST /review/franchise/create
 
 **Description:**  
@@ -289,6 +297,7 @@ Make a review for a franchise.
 }
 ```
 <h3> Endpoint 18</h3>
+
 ## GET /review/franchise/list/{franchise_id}
 
 **Description:**  
@@ -306,6 +315,7 @@ Get all reviews for a given franchise referencing its id.
 ]
 ```
 <h3> Endpoint 19</h3>
+
 ## GET /battle/battle/{battle_id}
 
 **Description:**  
@@ -326,6 +336,7 @@ Get the result of a battle by its ID.
 }
 ```
 <h3> Endpoint 20</h3>
+
 ## GET /battle/character/{character_id}
 
 **Description:**  
@@ -348,6 +359,7 @@ Get a list of battles a character has fought in.
 ]
 ```
 <h3> Endpoint 21</h3>
+
 ## GET /battle/user/{user_id}
 
 **Description:**  
@@ -370,6 +382,7 @@ Get a list of battles a user has participated in.
 ]
 ```
 <h3> Endpoint 22</h3>
+
 ## POST /battle/vote/{user_id}/{battle_id}/{character_id}
 
 **Description:**  
@@ -385,6 +398,7 @@ Vote for a character during an active battle.
 }
 ```
 <h3> Endpoint 23</h3>
+
 ## POST /battle/make
 
 **Description:**  
