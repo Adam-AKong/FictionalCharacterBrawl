@@ -15,15 +15,15 @@ def get_character_by_id(character_id: int):
     """
     Get character by ID.
     """
+    
     with db.engine.begin() as connection:
+        
         character = connection.execute(
-            sqlalchemy.text(
-                """
+            sqlalchemy.text("""
                 SELECT id, user_id, name, description, rating, strength, speed, health
                 FROM character
                 WHERE id = :id
-                """
-                ),
+            """),
             {
                 "id": character_id
             }
@@ -55,13 +55,11 @@ def get_user_characters(user_id: int):
     with db.engine.begin() as connection:
         # Check if user exists
         user_exists = connection.execute(
-            sqlalchemy.text(
-                """
+            sqlalchemy.text("""
                 SELECT id
                 FROM "user"
                 WHERE id = :user_id
-                """
-                ),
+            """),
             {
                 "user_id": user_id
             }
@@ -71,13 +69,11 @@ def get_user_characters(user_id: int):
             raise HTTPException(status_code=404, detail=f"User with id={user_id} not found")
         
         characters = connection.execute(
-            sqlalchemy.text(
-                """
+            sqlalchemy.text("""
                 SELECT id, user_id, name, description, rating, strength, speed, health
                 FROM character
                 WHERE user_id = :user_id
-                """
-                ),
+            """),
             {
                 "user_id": user_id
             }
@@ -103,6 +99,10 @@ def get_user_characters(user_id: int):
         return user_characters
 
 
+
+
+
+
 @router.get("/leaderboard", response_model=list[CharacterMakeResponse])
 def get_leaderboard():
     """
@@ -111,14 +111,12 @@ def get_leaderboard():
     
     with db.engine.begin() as connection:
         characters = connection.execute(
-            sqlalchemy.text(
-                """
+            sqlalchemy.text("""
                 SELECT id, user_id, name, description, rating, strength, speed, health
                 FROM character
                 ORDER BY rating DESC
                 LIMIT 10
-                """
-                )
+            """)
         ).all()
         
         # If no characters are found, return an empty list
@@ -165,13 +163,11 @@ def make_character(user_id: int, character: Character, franchiselist: list[Franc
     
     with db.engine.begin() as connection:
         char_id = connection.execute(
-            sqlalchemy.text(
-                """
+            sqlalchemy.text("""
                 INSERT INTO character (user_id, name, description, rating, strength, speed, health)
                 VALUES (:user_id, :name, :description, :rating, :strength, :speed, :health)
                 RETURNING id
-                """
-                ),
+            """),
             {
                 "user_id": user_id,
                 "name": character.name,
@@ -182,18 +178,15 @@ def make_character(user_id: int, character: Character, franchiselist: list[Franc
                 "health": character.health,
             },
         ).scalar_one()
-        
         # Assign character to franchises
         for franchise in franchiselist:
-            # check if franchise exists
+            #check if franchise exists
             franchise_id = connection.execute(
-                sqlalchemy.text(
-                    """
+                sqlalchemy.text("""
                     SELECT id
                     FROM franchise
                     WHERE id = :franchise_id
-                    """
-                    ),
+                """),
                 {
                     "franchise_id": franchise.franchise_id
                 }
@@ -203,11 +196,10 @@ def make_character(user_id: int, character: Character, franchiselist: list[Franc
                 raise HTTPException(status_code=404, detail=f"Franchise id={franchise} not found")
             
             connection.execute(
-                sqlalchemy.text(
-                    """
+                sqlalchemy.text("""
                     INSERT INTO char_fran (char_id, franchise_id)
                     VALUES (:char_id, :franchise_id)
-                    """),
+                """),
                 {
                     "char_id": char_id,
                     "franchise_id": franchise.franchise_id
@@ -236,13 +228,11 @@ def get_character_franchises(character_id: int):
     with db.engine.begin() as connection:
         # Check if character exists
         character_exists = connection.execute(
-            sqlalchemy.text(
-                """
+            sqlalchemy.text("""
                 SELECT id
                 FROM character
                 WHERE id = :char_id
-                """
-                ),
+            """),
             {
                 "char_id": character_id
             }
@@ -252,13 +242,12 @@ def get_character_franchises(character_id: int):
             raise HTTPException(status_code=404, detail=f"Character with id={character_id} not found")
         
         franchises = connection.execute(
-            sqlalchemy.text(
-                """
+            sqlalchemy.text("""
                 SELECT f.id, f.name, f.description
                 FROM franchise f
                 JOIN char_fran cf ON f.id = cf.franchise_id
                 WHERE cf.char_id = :char_id
-                """),
+            """),
             {
                 "char_id": character_id
             }

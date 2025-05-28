@@ -20,12 +20,11 @@ def get_franchise_by_id(franchise_id: int):
     
     with db.engine.begin() as connection:
         franchise = connection.execute(
-            sqlalchemy.text(
-                """
+            sqlalchemy.text("""
                 SELECT name, description
                 FROM franchise
                 WHERE id = :id
-                """),
+            """),
             {
                 "id": franchise_id
                 }
@@ -49,13 +48,11 @@ def get_franchise_by_name(franchise_name: str):
     
     with db.engine.begin() as connection:
         franchise = connection.execute(
-            sqlalchemy.text(
-                """
+            sqlalchemy.text("""
                 SELECT id, name, description
                 FROM franchise
                 WHERE name = :franchise_name
-                """
-                ),
+            """),
             {
                 "franchise_name": franchise_name
                 }
@@ -75,6 +72,7 @@ def make_franchise(franchise: Franchise):
     """
     Create a new franchise.
     """
+    
     if not franchise.name:
         raise HTTPException(status_code=400, detail="Franchise name cannot be empty")
     if not franchise.description:

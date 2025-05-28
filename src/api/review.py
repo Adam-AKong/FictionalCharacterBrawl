@@ -21,21 +21,18 @@ def review_character(review: C_Review):
         # If conflict occurs, it means the user has already reviewed this character.
         # Update the existing review instead of inserting a new one.
         connection.execute(
-            sqlalchemy.text(
-                """
+            sqlalchemy.text("""
                 INSERT INTO c_review (user_id, char_id, comment)
                 VALUES (:user_id, :char_id, :comment)
                 ON CONFLICT (user_id, char_id) DO UPDATE
                 SET comment = EXCLUDED.comment
-                """
-                ),
+            """),
             {
                 "user_id": review.user_id,
                 "char_id": review.char_id,
                 "comment": review.comment,
             },
         )
-
     return C_Review(
         user_id = review.user_id,
         char_id = review.char_id,
@@ -51,13 +48,11 @@ def get_character_review(character_id: int):
     with db.engine.begin() as connection:
         # Check if character exists
         character_exists = connection.execute(
-            sqlalchemy.text(
-                """
+            sqlalchemy.text("""
                 SELECT id
                 FROM character
                 WHERE id = :char_id
-                """
-                ),
+            """),
             {
                 "char_id": character_id
             }
@@ -68,13 +63,11 @@ def get_character_review(character_id: int):
         
         # Get all comments for the character
         comments = connection.execute(
-            sqlalchemy.text(
-                """
+            sqlalchemy.text("""
                 SELECT user_id, comment
                 FROM c_review
                 WHERE char_id = :char_id
-                """
-                ),
+            """),
             {
                 "char_id": character_id
             }
@@ -111,14 +104,12 @@ def make_franchise_review(review: F_Review):
     # Update the existing review instead of inserting a new one.
     with db.engine.begin() as connection:
         connection.execute(
-            sqlalchemy.text(
-                """
+            sqlalchemy.text("""
                 INSERT INTO f_review (user_id, franchise_id, comment)
                 VALUES (:user_id, :franchise_id, :comment)
                 ON CONFLICT (user_id, franchise_id) DO UPDATE
                 SET comment = EXCLUDED.comment
-                """
-                ),
+            """),
             {
                 "user_id": review.user_id,
                 "franchise_id": review.fran_id,
@@ -142,13 +133,11 @@ def get_franchise_review(franchise_id: int):
     with db.engine.begin() as connection:
         # Check if franchise exists
         franchise_exists = connection.execute(
-            sqlalchemy.text(
-                """
+            sqlalchemy.text("""
                 SELECT id
                 FROM franchise
                 WHERE id = :fran_id
-                """
-                ),
+            """),
             {
                 "fran_id": franchise_id
             }
@@ -159,13 +148,11 @@ def get_franchise_review(franchise_id: int):
         
         # Get all comments for the franchise
         comments = connection.execute(
-            sqlalchemy.text(
-                """
+            sqlalchemy.text("""
                 SELECT user_id, comment
                 FROM f_review
                 WHERE franchise_id = :fran_id
-                """
-                ),
+            """),
             {
                 "fran_id": franchise_id
             }
