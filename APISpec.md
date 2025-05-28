@@ -314,7 +314,7 @@ Get all reviews for a given franchise referencing its id.
   }
 ]
 ```
-<h3> Endpoint 19</h3>
+<h3> Endpoint 19 (Complex)</h3>
 
 ## GET /battle/battle/{battle_id}
 
@@ -381,7 +381,7 @@ Get a list of battles a user has participated in.
   }
 ]
 ```
-<h3> Endpoint 22</h3>
+<h3> Endpoint 22 (Complex)</h3>
 
 ## POST /battle/vote/{user_id}/{battle_id}/{character_id}
 
