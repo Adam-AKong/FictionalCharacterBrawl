@@ -99,7 +99,7 @@ def get_character_review(character_id: int):
 
 
 
-@router.post("/franchise/create/{franchise_id}", response_model=F_Review)
+@router.post("/franchise/create", response_model=F_Review)
 def make_franchise_review(review: F_Review):
     """
     Make a review for a franchise.
