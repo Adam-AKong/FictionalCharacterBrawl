@@ -3,6 +3,7 @@ from math import pow
 import random
 
 import sqlalchemy
+from sqlalchemy.exc import IntegrityError
 from fastapi import APIRouter, HTTPException, Depends
 
 from src.api.models import Battle, BattleCreateResponse, BattleResult, BattleVoteResponse
@@ -131,39 +132,54 @@ def get_battle_result(battle_id: int):
     """
     Get the result of a battle by its ID.
     """
-    with db.engine.begin() as connection:
-        battle = connection.execute(
-            sqlalchemy.text(
-                """
-                SELECT *
-                FROM battle_with_votes
-                WHERE id = :id
-                """
-            ),
-            [{"id": battle_id}]
-        ).one_or_none()
-        
-        if battle is None:
-            raise HTTPException(status_code=404, detail=f"Battle with id {battle_id} not found")
-        
-        if battle.end_date > datetime.now():
-            return BattleResult(
-                battle_id=battle.id,
-                user_id=battle.user_id,
-                char1_id=battle.char1_id,
-                char2_id=battle.char2_id,
-                vote1=battle.vote1,
-                vote2=battle.vote2,
-                winner_id=None,
-                start=battle.start_date,
-                end=battle.end_date,
-                finished=False
-            )
-        
-        if battle.winner_id is None:
-            # Calculate the winner if not already set
-            winner = update_winner(connection, battle)
+    with db.engine.connect() as connection:
+        connection = connection.execution_options(isolation_level="SERIALIZABLE")
+        with connection.begin():
+            battle = connection.execute(
+                sqlalchemy.text(
+                    """
+                    SELECT *
+                    FROM battle_with_votes
+                    WHERE id = :id
+                    """
+                ),
+                [{"id": battle_id}]
+            ).one_or_none()
             
+            if battle is None:
+                raise HTTPException(status_code=404, detail=f"Battle with id {battle_id} not found")
+            
+            if battle.end_date > datetime.now():
+                return BattleResult(
+                    battle_id=battle.id,
+                    user_id=battle.user_id,
+                    char1_id=battle.char1_id,
+                    char2_id=battle.char2_id,
+                    vote1=battle.vote1,
+                    vote2=battle.vote2,
+                    winner_id=None,
+                    start=battle.start_date,
+                    end=battle.end_date,
+                    finished=False
+                )
+            
+            if battle.winner_id is None:
+                # Calculate the winner if not already set
+                winner = update_winner(connection, battle)
+                
+                return BattleResult(
+                    battle_id=battle.id,
+                    user_id=battle.user_id,
+                    char1_id=battle.char1_id,
+                    char2_id=battle.char2_id,
+                    vote1=battle.vote1,
+                    vote2=battle.vote2,
+                    winner_id=winner,
+                    start=battle.start_date,
+                    end=battle.end_date,
+                    finished=True
+                )
+        
             return BattleResult(
                 battle_id=battle.id,
                 user_id=battle.user_id,
@@ -171,24 +187,11 @@ def get_battle_result(battle_id: int):
                 char2_id=battle.char2_id,
                 vote1=battle.vote1,
                 vote2=battle.vote2,
-                winner_id=winner,
+                winner_id=battle.winner_id,
                 start=battle.start_date,
                 end=battle.end_date,
                 finished=True
             )
-    
-        return BattleResult(
-            battle_id=battle.id,
-            user_id=battle.user_id,
-            char1_id=battle.char1_id,
-            char2_id=battle.char2_id,
-            vote1=battle.vote1,
-            vote2=battle.vote2,
-            winner_id=battle.winner_id,
-            start=battle.start_date,
-            end=battle.end_date,
-            finished=True
-        )
 
 @router.get("/character/{character_id}", response_model=list[BattleResult])
 def character_participation(character_id: int):
@@ -389,34 +392,24 @@ def battle_vote(user_id: int, battle_id: int, character_id: int):
         ).one()
     
         if character_ids.char1_id == character_id or character_ids.char2_id == character_id:
-            # Check if the user has already voted
-            existing_vote = connection.execute(
-                sqlalchemy.text(
-                    """
-                    SELECT *
-                    FROM battle_votes
-                    WHERE user_id = :user AND battle_id = :battle
-                    """
-                ),
-                [{"user": user_id, "battle": battle_id}]
-            ).one_or_none()
-            
-            if existing_vote is not None:
-                raise HTTPException(status_code=400, detail=f"User {user_id} has already voted in battle {battle_id}")
-            
-            # Insert the vote into the database
-            connection.execute(
-                sqlalchemy.text(
-                    """
-                    INSERT INTO battle_votes (battle_id, user_id, char_id)
-                    VALUES (:battle, :user, :char_id)
-                    """
-                ),
-                [{
-                    "battle": battle_id,
-                    "user": user_id,
-                    "char_id": character_id}]
-            )
+            # Check if the user has already voted, else insert the vote into the database
+            try:
+                connection.execute(
+                    sqlalchemy.text("""
+                        INSERT INTO battle_votes (battle_id, user_id, char_id)
+                        VALUES (:battle, :user, :char_id)
+                    """),
+                    {
+                        "battle": battle_id,
+                        "user": user_id,
+                        "char_id": character_id
+                    }
+                )
+            except IntegrityError as exc:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"User {user_id} has already voted in battle {battle_id}"
+                ) from exc
         else:
             raise HTTPException(status_code=400, detail=f"Character with id {character_id} is not part of battle {battle_id}")
         

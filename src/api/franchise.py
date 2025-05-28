@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 import sqlalchemy
+from sqlalchemy.exc import IntegrityError
 from src import database as db
 from src.api import auth
 
@@ -78,36 +79,24 @@ def make_franchise(franchise: Franchise):
         raise HTTPException(status_code=400, detail="Franchise description cannot be empty")
     
     
-    with db.engine.begin() as connection:
-        # check if franchise name already exists
-        existing_franchise = connection.execute(
-            sqlalchemy.text("""
-                SELECT id
-                FROM franchise
-                WHERE name = :name
-            """),
-            {
-                "name": franchise.name,
-            },
-        ).scalar_one_or_none()
-        
-        if existing_franchise is not None:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Franchise with name '{franchise.name}' already exists"
-            )
-        
-        fran_id = connection.execute(
-            sqlalchemy.text("""
-                INSERT INTO franchise (name, description)
-                VALUES (:name, :description)
-                RETURNING id
-            """),
-            {
-                "name": franchise.name,
-                "description": franchise.description,
-            },
-        ).scalar_one()
+    try:
+        with db.engine.begin() as connection:
+            fran_id = connection.execute(
+                sqlalchemy.text("""
+                    INSERT INTO franchise (name, description)
+                    VALUES (:name, :description)
+                    RETURNING id
+                """),
+                {
+                    "name": franchise.name,
+                    "description": franchise.description,
+                },
+            ).scalar_one()
+    except IntegrityError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Franchise with name '{franchise.name}' already exists"
+        ) from exc
 
     new_franchise = FranchiseMakeResponse(
         id = fran_id,

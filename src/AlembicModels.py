@@ -97,3 +97,7 @@ class BattleVotes(Base):
     battle_id = Column(Integer, ForeignKey('battle.id'), nullable=False) # The Battle the User is specifying
     user_id = Column(Integer, ForeignKey('user.id'), nullable=False) # The User who is voting
     created_at = Column(DateTime, server_default=func.now()) # Created At
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'battle_id', name='uix_user_battle_vote'),
+    )
