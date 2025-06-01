@@ -13,7 +13,7 @@
 11. Resolved in 9 by aggregating votes from battle_votes table
 12. Adding created_at columns for other tables makes sense (battle already has an implicit created_at with start_date)
 13. Creating a review route makes sense and this makes it consistent with battle endpoint creating and retrieving information from that route
-14. Good thoughts on making inputs URL safe. I believe FastAPI already handles this as I've tried inputting unsafe strings. However, I think this is a justifiable safety measure so limiting the type of characters users can input for strings is important.
+14. Good thoughts on making inputs URL safe. I believe FastAPI already handles this as I've tried inputting unsafe strings. However, I think this is a justifiable safety measure. The way to make the URL safe is by passing pydantic models to avoid using the URL to input in for users and others.
 
 # Atkin
 1. Reasonable to remove /get to make more RESTful
@@ -47,12 +47,12 @@
 1. I'm not sure what you mean by upgrade properly. Alembic upgrade head should cover this properly
 2. Franchise Name is now unique overall. However, Character Name is not unique and that is intended as a user might want to create the same character multiple times with different stats or different descriptions.
 3. Interesting idea to add a soft deletion of rows, but we might not implement this as this adds a lot of new endpoints to create.
-4. Good idea for the filtering option for Listing endpoints, which we might implement.
+4. Good idea for the filtering option for Listing endpoints. I didn't add filtering as this takes a lot more work, but I did create a limit of 10 results and added a paging system to go through each page.
 5. Endpoints now all return proper HTTP Exceptions or a proper JSON object.
 6. Not sure why we would need to add bulk characters or franchises at the same time. This can just be accomplished by running the current endpoints multiple time with different variables.
-7. Good idea to add authentication for specific endpoints, we might implement this
+7. Good idea to add authentication for specific endpoints, however, this is a lot more work for little benefit on this specific group project. Unless you mean adding the default.env and you have to authenticate with a string such as "brat" which we now have implemented.
 8. I believe we already have this through our various endpoints in the battle route which calls information from the battle and battle_votes table unless I am misunderstanding your suggestion
-9. Interesting idea to add more detailed information of franchise, character, etc. We might implement this
+9. Interesting idea to add more detailed information of franchise, character, etc. However, for the current design we aren't going to implement this.
 10. Good idea, adding more timestamps to different tables
 11. Start_Date has the default value of now() and end_date is determined based on the duration. However there were no checks to make sure these values were valid so good catch!
 12. Stats are the same regardless of Franchise or Character itself. The current formula is 
