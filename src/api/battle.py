@@ -216,7 +216,7 @@ def character_participation(character_id: int, page_number: int):
         """)
         
         battlelist = connection.execute(query, {
-            "char_id": character_id
+            "character": character_id
         }).fetchall()
         
         # If no battles are found, return an empty list
@@ -291,14 +291,28 @@ def user_participation(user_id: int, page_number: int):
     
     battles = []
     with db.engine.begin() as connection:
+         # Check if user exists
+        user_exists = connection.execute(
+            sqlalchemy.text("""
+                SELECT id
+                FROM "user"
+                WHERE id = :user_id
+            """),
+            {
+                "user_id": user_id
+            }
+        ).one_or_none()
         
+        if user_exists is None:
+            raise HTTPException(status_code=404, detail=f"User with id={user_id} not found")
+               
         page_size = 10
         offset = page_number * page_size
         
         query = sqlalchemy.text(f"""
             SELECT *
             FROM battle_with_votes
-            WHERE user_id = :user
+            WHERE user_id = :user_id
             LIMIT {page_size} OFFSET {offset}
         """)
         
