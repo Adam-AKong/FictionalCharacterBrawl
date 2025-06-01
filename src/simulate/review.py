@@ -7,10 +7,7 @@ import time
 fake = Faker()
 
 # Simulates both Character and Franchise Reviews
-def simulate_reviews(total: int):
-    max_user_id = total
-    max_char_id = total
-    max_fran_id = total
+def simulate_reviews(total: int, max_user_id: int, max_char_id: int, max_fran_id: int):
     start = time.time()
     for i in range(total):
         try:

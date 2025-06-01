@@ -6,9 +6,7 @@ from src.api.models import Battle
 
 fake = Faker()
 
-def simulate_battles(total: int):
-    max_user_id = total
-    max_char_id = total
+def simulate_battles(total: int, max_user_id: int, max_char_id: int):
     start = time.time()
     for i in range(total):
         try:

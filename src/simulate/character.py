@@ -6,9 +6,7 @@ import time
 
 fake = Faker()
 
-def simulate_characters(total: int):
-    max_user_id = total
-    max_franchise_id = total
+def simulate_characters(total: int, max_user_id: int, max_franchise_id: int):
     start = time.time()
     for i in range(total):
         try:
