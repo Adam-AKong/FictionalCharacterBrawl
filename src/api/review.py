@@ -1,8 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends
 import sqlalchemy
 from src import database as db
+from src.api.character import get_character_by_id
+from src.api.franchise import get_franchise_by_id
 from src.api.models import C_Review, F_Review
 from src.api import auth
+from src.api.user import get_user
 
 router = APIRouter(
     prefix="/review", 
@@ -20,6 +23,13 @@ def review_character(review: C_Review):
     with db.engine.begin() as connection:
         # If conflict occurs, it means the user has already reviewed this character.
         # Update the existing review instead of inserting a new one.
+        
+        # Check if user id and char id are valid
+        # This will return a  HTTP exception from the function it is calling itself
+        get_user(review.user_id)
+        get_character_by_id(review.char_id)
+
+        
         connection.execute(
             sqlalchemy.text("""
                 INSERT INTO c_review (user_id, char_id, comment)
@@ -99,6 +109,11 @@ def make_franchise_review(review: F_Review):
     """
     if not review.comment:
         raise HTTPException(status_code=400, detail="Comment cannot be empty")
+    
+    # Check if user id and fran id are valid
+    # This will return a  HTTP exception from the function it is calling itself
+    get_user(review.user_id)
+    get_franchise_by_id(review.fran_id)
 
     # If conflict occurs, it means the user has already reviewed this character.
     # Update the existing review instead of inserting a new one.
