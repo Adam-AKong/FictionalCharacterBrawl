@@ -193,24 +193,31 @@ def get_battle_result(battle_id: int):
                 finished=True
             )
 
-@router.get("/character/{character_id}", response_model=list[BattleResult])
-def character_participation(character_id: int):
+@router.get("/character/{character_id}/{page_number}", response_model=list[BattleResult])
+def character_participation(character_id: int, page_number: int):
     """
     Get a list of battles a character has fought in.
     """
+    if page_number < 0:
+        raise HTTPException(status_code=400, detail=f"Page Number must not be negative")
+    
     battles = []
     with db.engine.begin() as connection:
         # Get all battles for the character
-        battlelist = connection.execute(
-            sqlalchemy.text(
-                """
-                SELECT *
-                FROM battle_with_votes
-                WHERE char1_id = :character OR char2_id = :character
-                """
-            ),
-            [{"character": character_id}]
-        ).fetchall()
+                
+        page_size = 10
+        offset = page_number * page_size
+        
+        query = sqlalchemy.text(f"""
+            SELECT *
+            FROM battle_with_votes
+            WHERE char1_id = :character OR char2_id = :character
+            LIMIT {page_size} OFFSET {offset}
+        """)
+        
+        battlelist = connection.execute(query, {
+            "char_id": character_id
+        }).fetchall()
         
         # If no battles are found, return an empty list
         if not battlelist:
@@ -274,23 +281,31 @@ def character_participation(character_id: int):
     return battles
             
 
-@router.get("/user/{user_id}", response_model=list[BattleResult])
-def user_participation(user_id: int):
+@router.get("/user/{user_id}/{page_number}", response_model=list[BattleResult])
+def user_participation(user_id: int, page_number: int):
     """
     Get a list of battles a user has participated in.
     """
+    if page_number < 0:
+        raise HTTPException(status_code=400, detail=f"Page Number must not be negative")
+    
     battles = []
     with db.engine.begin() as connection:
-        battlelist = connection.execute(
-            sqlalchemy.text(
-                """
-                SELECT *
-                FROM battle_with_votes
-                WHERE user_id = :user
-                """
-            ),
-            [{"user": user_id}]
-        ).all()
+        
+        page_size = 10
+        offset = page_number * page_size
+        
+        query = sqlalchemy.text(f"""
+            SELECT *
+            FROM battle_with_votes
+            WHERE user_id = :user
+            LIMIT {page_size} OFFSET {offset}
+        """)
+        
+        battlelist = connection.execute(query, {
+            "user_id": user_id
+        }).fetchall()
+
         # If no battles found, return an empty list
         if not battlelist:
             return []
