@@ -50,11 +50,14 @@ def review_character(review: C_Review):
     )
     
         
-@router.get("/character/list/{character_id}", response_model=list[C_Review])
-def get_character_review(character_id: int):
+@router.get("/character/list/{character_id}/{page_number}", response_model=list[C_Review])
+def get_character_review(character_id: int, page_number: int):
     """
     Get all reviews for a given character referencing its id.
     """
+    if page_number < 0:
+        raise HTTPException(status_code=400, detail=f"Page Number must not be negative")
+    
     with db.engine.begin() as connection:
         # Check if character exists
         character_exists = connection.execute(
@@ -72,18 +75,21 @@ def get_character_review(character_id: int):
             raise HTTPException(status_code=404, detail=f"Character with id={character_id} not found")
         
         # Get all comments for the character
-        comments = connection.execute(
-            sqlalchemy.text("""
-                SELECT user_id, comment
-                FROM c_review
-                WHERE char_id = :char_id
-            """),
-            {
-                "char_id": character_id
-            }
-        ).all()
-        
-        # If no comments found, return an empty list
+        page_size = 10
+        offset = page_number * page_size
+
+        query = sqlalchemy.text(f"""
+            SELECT user_id, comment
+            FROM c_review
+            WHERE char_id = :char_id
+            LIMIT {page_size} OFFSET {offset}
+        """)
+
+        comments = connection.execute(query, {
+            "char_id": character_id
+        }).all()
+
+                # If no comments found, return an empty list
         if not comments:
             return []
 
@@ -140,11 +146,15 @@ def make_franchise_review(review: F_Review):
 
 
 
-@router.get("/franchise/list/{franchise_id}", response_model=list[F_Review])
-def get_franchise_review(franchise_id: int):
+@router.get("/franchise/list/{franchise_id}/{page_number}", response_model=list[F_Review])
+def get_franchise_review(franchise_id: int, page_number: int):
     """
     Get all reviews for a given franchise referencing its id.
     """
+    
+    if page_number < 0:
+        raise HTTPException(status_code=400, detail=f"Page Number must not be negative")
+    
     with db.engine.begin() as connection:
         # Check if franchise exists
         franchise_exists = connection.execute(
@@ -162,16 +172,19 @@ def get_franchise_review(franchise_id: int):
             raise HTTPException(status_code=404, detail=f"Franchise with id={franchise_id} not found")
         
         # Get all comments for the franchise
-        comments = connection.execute(
-            sqlalchemy.text("""
-                SELECT user_id, comment
-                FROM f_review
-                WHERE franchise_id = :fran_id
-            """),
-            {
-                "fran_id": franchise_id
-            }
-        ).all()
+        page_size = 10
+        offset = page_number * page_size
+        
+        query = sqlalchemy.text(f"""
+            SELECT user_id, comment
+            FROM f_review
+            WHERE franchise_id = :fran_id
+            LIMIT {page_size} OFFSET {offset}
+        """)
+        
+        comments = connection.execute(query, {
+            "cfranchise_id": franchise_id
+        }).all()
         
         # If no comments found, return an empty list
         if not comments:

@@ -46,12 +46,14 @@ def get_character_by_id(character_id: int):
         return the_character
 
 
-@router.get("/list/{user_id}", response_model=list[ReturnedCharacter])
-def get_user_characters(user_id: int):
+@router.get("/list/{user_id}/{page_number}", response_model=list[ReturnedCharacter])
+def get_user_characters(user_id: int, page_number: int):
     """
     Get all characters made by user.
     """
-
+    if page_number < 0:
+        raise HTTPException(status_code=400, detail=f"Page Number must not be negative")
+    
     with db.engine.begin() as connection:
         # Check if user exists
         user_exists = connection.execute(
@@ -68,16 +70,19 @@ def get_user_characters(user_id: int):
         if user_exists is None:
             raise HTTPException(status_code=404, detail=f"User with id={user_id} not found")
         
-        characters = connection.execute(
-            sqlalchemy.text("""
-                SELECT id, user_id, name, description, rating, strength, speed, health
-                FROM character
-                WHERE user_id = :user_id
-            """),
-            {
-                "user_id": user_id
-            }
-        ).all()
+        page_size = 10
+        offset = page_number * page_size
+        
+        query = sqlalchemy.text(f"""
+            SELECT id, user_id, name, description, rating, strength, speed, health
+            FROM character
+            WHERE user_id = :user_id
+            LIMIT {page_size} OFFSET {offset}
+        """)
+        
+        characters = connection.execute(query, {
+            "user_id": user_id
+        }).all()
         
         # If no characters are found, return an empty list
         if not characters:
@@ -220,11 +225,14 @@ def make_character(user_id: int, character: Character, franchiselist: list[Franc
 
         return new_character
 
-@router.get("/franchise/{character_id}", response_model=list[FranchiseReturnResponse])
-def get_character_franchises(character_id: int):
+@router.get("/franchise/{character_id}/{page_number}", response_model=list[FranchiseReturnResponse])
+def get_character_franchises(character_id: int, page_number: int):
     """
     Get all franchises for a given character referencing its id.
     """
+    if page_number < 0:
+        raise HTTPException(status_code=400, detail=f"Page Number must not be negative")
+    
     with db.engine.begin() as connection:
         # Check if character exists
         character_exists = connection.execute(
@@ -241,17 +249,20 @@ def get_character_franchises(character_id: int):
         if character_exists is None:
             raise HTTPException(status_code=404, detail=f"Character with id={character_id} not found")
         
-        franchises = connection.execute(
-            sqlalchemy.text("""
-                SELECT f.id, f.name, f.description
-                FROM franchise f
-                JOIN char_fran cf ON f.id = cf.franchise_id
-                WHERE cf.char_id = :char_id
-            """),
-            {
-                "char_id": character_id
-            }
-        ).all()
+        page_size = 10
+        offset = page_number * page_size
+        
+        query = sqlalchemy.text(f"""
+            SELECT f.id, f.name, f.description
+            FROM franchise f
+            JOIN char_fran cf ON f.id = cf.franchise_id
+            WHERE cf.char_id = :char_id
+            LIMIT {page_size} OFFSET {offset}
+        """)
+        
+        franchises = connection.execute(query, {
+            "char_id": character_id
+        }).all()
         
         if not franchises:
             raise HTTPException(status_code=404, detail="No franchises found for this character")
