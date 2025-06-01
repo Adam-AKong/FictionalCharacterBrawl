@@ -37,4 +37,8 @@ def simulate_reviews(total: int, max_user_id: int, max_char_id: int, max_fran_id
     print(f"Done — {total:,} reviews created in {time.time() - start:.2f} seconds.")
 
 if __name__ == "__main__":
-    simulate_reviews()
+    review_total = 1_000
+    user_total = 1_000
+    character_total = 1_000
+    franchise_total = 1_000
+    simulate_reviews(review_total, user_total, character_total, franchise_total)

@@ -4,7 +4,7 @@ import sqlalchemy
 from src import database as db
 from src.api import auth
 
-from src.api.models import User, User_Favorites
+from src.api.models import User, User_Favorites, UserCreate
 from src.api.character import get_character_by_id
 from src.api.franchise import get_franchise_by_id
 
@@ -40,8 +40,8 @@ def get_user(user_id: int):
 
         return user
 
-@router.get("/by_name/{username}", response_model=User)
-def get_user_by_name(username: str):
+@router.get("/by_name/", response_model=User)
+def get_user_by_name(username: UserCreate):
     """
     Get User by name.
     """
@@ -53,27 +53,26 @@ def get_user_by_name(username: str):
                 WHERE name = :username
             """),
             {
-             "username": username,
+             "username": username.name,
              },
         ).one_or_none()
     
         if user is None:
-            raise HTTPException(status_code=404, detail=f"User with name={username} not found")
-        return user
+            raise HTTPException(status_code=404, detail=f"User with name={username.name} not found")
+        
+        user_return = User(
+            id = user.id,
+            name = user.name
+        )
+        return user_return
 
 @router.post("/make", response_model=User)
-def make_user(name: str):
+def make_user(username: UserCreate):
     """
     Make a new user.
     """
-    if not name:
+    if username.name == None:
         raise HTTPException(status_code=400, detail="Name cannot be empty")
-    
-    if not USERNAME_REGEX.fullmatch(name):
-        raise HTTPException(
-            status_code=400,
-            detail="Username must only contain letters, numbers, dashes, or underscores"
-        )
     
     # Save the user to the database
     with db.engine.begin() as connection:
@@ -86,13 +85,13 @@ def make_user(name: str):
                 WHERE name = :name
             """),
             {
-             "name": name,
+             "name": username.name,
              },
         ).scalar_one_or_none()
         if existing_user is not None:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"User with name '{name}' already exists"
+                detail=f"User with name '{username.name}' already exists"
             )
     
         user_id = connection.execute(
@@ -102,13 +101,13 @@ def make_user(name: str):
                 RETURNING id
             """),
             {
-             "name": name,
+             "name": username.name,
              },
         ).scalar_one()
     
         new_user = User(
             id = user_id,
-            name = name
+            name = username.name
         )
 
         return new_user

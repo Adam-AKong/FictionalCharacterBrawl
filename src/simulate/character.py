@@ -42,4 +42,7 @@ def simulate_characters(total: int, max_user_id: int, max_franchise_id: int):
     print(f"Done — {total:,} characters created in {time.time() - start:.2f} seconds.")
 
 if __name__ == "__main__":
-    simulate_characters()
+    character_total = 1_000
+    user_total = 1_000
+    franchise_total = 1_000
+    simulate_characters(character_total, user_total, franchise_total)

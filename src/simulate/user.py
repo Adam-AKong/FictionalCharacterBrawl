@@ -1,4 +1,6 @@
 import sys, os
+
+from src.api.models import UserCreate
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
 
 from faker import Faker
@@ -19,7 +21,9 @@ def simulate_users(total: int):
     start = time.time()
     for i in range(total):
         try:
-            username = clean_username(generate_username(fake, i))
+            username = UserCreate(
+                name = clean_username(generate_username(fake, i))
+            )
             make_user(username)
 
             # Progress logging every 10,000 inserts
@@ -34,5 +38,6 @@ def simulate_users(total: int):
     print(f"Done — {total:,} users created in {time.time() - start:.2f} seconds.")
 
 if __name__ == "__main__":
-    simulate_users()
+    user_total = 1_000
+    simulate_users(user_total)
     

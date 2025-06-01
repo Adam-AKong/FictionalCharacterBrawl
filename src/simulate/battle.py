@@ -50,4 +50,7 @@ def simulate_battles(total: int, max_user_id: int, max_char_id: int):
     print(f"Done — {total:,} battles created in {time.time() - start:.2f} seconds.")
 
 if __name__ == "__main__":
-    simulate_battles()
+    battle_total = 1_000
+    user_total = 1_000
+    character_total = 1_000
+    simulate_battles(battle_total, user_total, character_total)

@@ -26,4 +26,5 @@ def simulate_franchises(total: int):
     print(f"Done — {total:,} franchises created in {time.time() - start:.2f} seconds.")
 
 if __name__ == "__main__":
-    simulate_franchises(1000)
+    franchise_total = 1_000
+    simulate_franchises(franchise_total)
