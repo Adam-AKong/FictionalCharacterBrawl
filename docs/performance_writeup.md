@@ -343,5 +343,53 @@ And with these simple changes we’ve reduced the cost of this query from 22609.
 
 While we only focused on endpoint 20, both endpoints 21 (second slowest) and 19 (third slowest) both suffer from similar query issues, we could do a similar improvement to those endpoints as well. The sequential scan for the user ids for endpoint 21 within users is expensive, so one improvement for addressing the cost in querying for this would be also indexing for users here. So adding one more index could potentially improve the time it takes to query. Additionally, endpoint 19 benefits from the changes at endpoint 20, where it would have to search a battle based on the battle id. Because we are indexing the battle id, the change here would also improve the time it takes to search for individual battle ids, and thus reduce the time taken to query for that.
 
-### Three Flows
+### Three More Example Flows
 
+Example Flow 4
+Fan Fiction World-Building
+
+Wendy the Writer is writing a fan fiction universe that combines characters from multiple fandoms in a single story. She's looking to build believable interactions and epic fights between characters, but struggles with consistency and balancing. She uses the Fictional Character Brawl to research characters and simulate encounters that will guide her story.
+
+First, Nina calls GET /franchise/{franchise_id} narrow it down to character from "My Hero Academia" and "Attack on Titan" and see if the franchise exists
+
+She selects "Levi Ackerman" and "Izuku Midoriya" using GET /character/{character_id} to learn about their attributes.
+
+To check if their battle would be interesting, she submits them to POST /battle/make with a 7 day timer.
+
+She uses GET /battle/{battle_id} to review the battle result and gets insights from the outcome and community comments after she 7 days.
+
+She incorporates the battle dynamics into her writing, crafting an engaging scene for characters inspiried by these franchises.
+
+Example Flow 5
+Game Balance Tuning for an Indie Dev
+
+Mark the Maker is an indie game developer balancing a PvP game where players can import characters inspired by fictional universes. His players complain about some characters being overpowered. Mark decides to use the Fictional Character Brawl to compare win rates and user sentiment to rebalance them.
+
+Mark queries GET /character/leaderboard to see which characters are dominating win-wise.
+
+He identifies two problematic characters: "Carrie Carry" and "Big Blade" and inspects their stats using GET /character/{character_id}.
+
+To get community sentiment, he calls GET /character/reviews/{character_id} and looks at the feedback on "Big Blade".
+
+He uses POST /battle/characters/{character_1}/{character_2} to simulate "Carrie Carry" vs "Big Blade" for 7 days.
+
+After analyzing the win/loss balance and reviews, he tweaks their in-game stats and uses GET /battle/{battle_id} to see the winner after a week
+
+Satisfied with the new balance, he updates his game with a new patch.
+
+Example Flow 6
+Cosplay Competition Inspiration
+
+Jerry the Joker is a professional cosplayer preparing for a themed tournament where participants must portray characters with combat backgrounds. The contest judges creativity and character relevance. Jerry wants to impress by selecting a character who is both popular and has a strong win record.
+
+He starts with GET /character/leaderboard to find highly ranked characters with frequent wins.
+
+He notices "The Joker" from the Batman series and retrieves his details using GET /character/{character_id}.
+
+Curious about matchups, he runs POST /battle/characters/{The Joker}/{Batman} to see how his choice performs against another stylish character.
+
+He reads user reviews with GET /character/reviews/{The Joker} to understand the appeal and gather roleplaying tips.
+
+Once users vote on the battle, he settles on The Joker, he leaves his own review using POST /character/review/{The Joker} to engage with the community.
+
+He uses the insights and battle data to determine that he will cosplay as the Joker.
