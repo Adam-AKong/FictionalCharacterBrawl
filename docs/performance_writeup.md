@@ -204,7 +204,8 @@ Limit  (cost=5664.29..5664.53 rows=3 width=52)
                           ->  Seq Scan on battle b  (cost=0.00..1168.16 rows=3 width=36)
                                 Filter: ((char1_id = 1) OR (char2_id = 1))
 
-##First Indexing Tweak
+## First Indexing Tweak
+
 The key thing that drives up the cost as the program searches the list is the right join on the ‘battle_vote’ table with the ‘battle’ table. The condition is a comprehensive search for any matches between the two id’s which means that the query ends up scanning all of the battle_vote rows because battle_id isn’t unique or indexed (yet!)
 
 Therefore, in order to improve the efficiency of this join and not have to scan all of the rows for matches, we just need to add an index to battle_id. This will make it easier to reference and join without scanning every row.
@@ -226,7 +227,8 @@ Limit  (cost=1194.29..1194.53 rows=3 width=52)
 
 Pretty much all of the cost of that join has been lost since we added the index. Because iterating through battle_votes was so expensive, this change has cut our overall cost to run into a fifth of what it used to be!
 
-##But It Can Be Better!
+## But It Can Be Better!
+
 To take it one step further, we also realized that the sequential scan for the character ids within battle is expensive, though to a lesser degree. The character ids aren’t unique, so it makes sense that any query would have to search through the entire table to find what it was looking for. Therefore, a way to further optimize the query would be to make two more indexes, on char1_id and char2_id. Here’s the code we used to create them:
 CREATE INDEX ON battle(char1_id);
 CREATE INDEX ON battle(char2_id);
