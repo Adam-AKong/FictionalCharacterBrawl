@@ -179,3 +179,73 @@ Description:
 Create a battle between two characters and return its id.
 Runtime:
 0.008245s
+
+# Performance Tuning
+
+## Initial Test
+Our slowest endpoint was GET /battle/character/{character_id}. This was surprising because this endpoint only has one query, and isn’t as technically complex as some of the others. It should just list some battles following a parameter, right?
+
+Upon running:
+EXPLAIN SELECT *
+FROM battle_with_votes
+WHERE char1_id = 1 OR char2_id = 1
+LIMIT 10 OFFSET 0
+
+We got:
+Limit  (cost=5664.29..5664.53 rows=3 width=52)
+  ->  GroupAggregate  (cost=5664.29..5664.53 rows=3 width=52)
+        Group Key: b.id
+        ->  Sort  (cost=5664.29..5664.33 rows=14 width=40)
+              Sort Key: b.id
+              ->  Hash Right Join  (cost=1168.20..5664.03 rows=14 width=40)
+                    Hash Cond: (bv.battle_id = b.id)
+                    ->  Seq Scan on battle_votes bv  (cost=0.00..3874.55 rows=236655 width=8)
+                    ->  Hash  (cost=1168.16..1168.16 rows=3 width=36)
+                          ->  Seq Scan on battle b  (cost=0.00..1168.16 rows=3 width=36)
+                                Filter: ((char1_id = 1) OR (char2_id = 1))
+
+##First Indexing Tweak
+The key thing that drives up the cost as the program searches the list is the right join on the ‘battle_vote’ table with the ‘battle’ table. The condition is a comprehensive search for any matches between the two id’s which means that the query ends up scanning all of the battle_vote rows because battle_id isn’t unique or indexed (yet!)
+
+Therefore, in order to improve the efficiency of this join and not have to scan all of the rows for matches, we just need to add an index to battle_id. This will make it easier to reference and join without scanning every row.
+
+So, we created the following index:
+CREATE INDEX ON battle_votes(battle_id);
+
+Then, running the same explain query got us this:
+Limit  (cost=1194.29..1194.53 rows=3 width=52)
+  ->  GroupAggregate  (cost=1194.29..1194.53 rows=3 width=52)
+        Group Key: b.id
+        ->  Sort  (cost=1194.29..1194.33 rows=14 width=40)
+              Sort Key: b.id
+              ->  Nested Loop Left Join  (cost=0.42..1194.03 rows=14 width=40)
+                    ->  Seq Scan on battle b  (cost=0.00..1168.16 rows=3 width=36)
+                          Filter: ((char1_id = 1) OR (char2_id = 1))
+                    ->  Index Scan using battle_votes_battle_id_idx on battle_votes bv  (cost=0.42..8.55 rows=7 width=8)
+                          Index Cond: (battle_id = b.id)
+
+Pretty much all of the cost of that join has been lost since we added the index. Because iterating through battle_votes was so expensive, this change has cut our overall cost to run into a fifth of what it used to be!
+
+##But It Can Be Better!
+To take it one step further, we also realized that the sequential scan for the character ids within battle is expensive, though to a lesser degree. The character ids aren’t unique, so it makes sense that any query would have to search through the entire table to find what it was looking for. Therefore, a way to further optimize the query would be to make two more indexes, on char1_id and char2_id. Here’s the code we used to create them:
+CREATE INDEX ON battle(char1_id);
+CREATE INDEX ON battle(char2_id);
+
+Re-running explain:
+Limit  (cost=46.02..46.26 rows=3 width=52)
+  ->  GroupAggregate  (cost=46.02..46.26 rows=3 width=52)
+        Group Key: b.id
+        ->  Sort  (cost=46.02..46.06 rows=14 width=40)
+              Sort Key: b.id
+              ->  Nested Loop Left Join  (cost=9.03..45.76 rows=14 width=40)
+                    ->  Bitmap Heap Scan on battle b  (cost=8.61..19.89 rows=3 width=36)
+                          Recheck Cond: ((char1_id = 1) OR (char2_id = 1))
+                          ->  BitmapOr  (cost=8.61..8.61 rows=3 width=0)
+                                ->  Bitmap Index Scan on battle_char1_id_idx  (cost=0.00..4.30 rows=2 width=0)
+                                      Index Cond: (char1_id = 1)
+                                ->  Bitmap Index Scan on battle_char2_id_idx  (cost=0.00..4.30 rows=2 width=0)
+                                      Index Cond: (char2_id = 1)
+                    ->  Index Scan using battle_votes_battle_id_idx on battle_votes bv  (cost=0.42..8.55 rows=7 width=8)
+                          Index Cond: (battle_id = b.id)
+
+And with these simple changes we’ve reduced the cost of this query from 5664.53 to 46.26, a hundredth of the original! This is more in-line with the expectations for the speed of a search, especially now that it’s been optimized.
