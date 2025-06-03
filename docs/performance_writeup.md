@@ -5,7 +5,7 @@
 
 The Code for each section is under src/simulate
 
-# Estimated Total RowsRows
+# Estimated Total Rows
 This is taken from simulate.py
 
 user_total = 200,000
