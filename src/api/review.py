@@ -7,6 +7,8 @@ from src.api.models import C_Review, F_Review
 from src.api import auth
 from src.api.user import get_user
 
+import time
+
 router = APIRouter(
     prefix="/review", 
     tags=["Review"],
@@ -49,7 +51,6 @@ def review_character(review: C_Review):
         comment = review.comment
     )
     
-        
 @router.get("/character/list/{character_id}/{page_number}", response_model=list[C_Review])
 def get_character_review(character_id: int, page_number: int):
     """
@@ -106,8 +107,6 @@ def get_character_review(character_id: int, page_number: int):
 
         return all_comments
 
-
-
 @router.post("/franchise/create", response_model=F_Review)
 def make_franchise_review(review: F_Review):
     """
@@ -143,8 +142,6 @@ def make_franchise_review(review: F_Review):
         fran_id = review.fran_id,
         comment = review.comment
     )
-
-
 
 @router.get("/franchise/list/{franchise_id}/{page_number}", response_model=list[F_Review])
 def get_franchise_review(franchise_id: int, page_number: int):
@@ -183,7 +180,7 @@ def get_franchise_review(franchise_id: int, page_number: int):
         """)
         
         comments = connection.execute(query, {
-            "cfranchise_id": franchise_id
+            "fran_id": franchise_id
         }).all()
         
         # If no comments found, return an empty list
@@ -202,3 +199,4 @@ def get_franchise_review(franchise_id: int, page_number: int):
             )
 
         return all_comments
+    

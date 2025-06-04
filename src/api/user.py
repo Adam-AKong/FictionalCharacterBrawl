@@ -8,6 +8,7 @@ from src.api.models import User, User_Favorites, UserCreate
 from src.api.character import get_character_by_id
 from src.api.franchise import get_franchise_by_id
 
+import time
 
 router = APIRouter(
     prefix="/user", 
@@ -15,8 +16,6 @@ router = APIRouter(
     dependencies=[Depends(auth.get_api_key)],)
 
 USERNAME_REGEX = re.compile(r"^[a-zA-Z0-9_-]+$")
-
-
 
 @router.get("/by_id/{user_id}", response_model=User)
 def get_user(user_id: int):
@@ -41,7 +40,7 @@ def get_user(user_id: int):
         return user
 
 @router.get("/by_name/", response_model=User)
-def get_user_by_name(username: UserCreate):
+def get_user_by_name(username: str):
     """
     Get User by name.
     """
@@ -53,7 +52,7 @@ def get_user_by_name(username: UserCreate):
                 WHERE name = :username
             """),
             {
-             "username": username.name,
+             "username": username,
              },
         ).one_or_none()
     
@@ -112,7 +111,6 @@ def make_user(username: UserCreate):
 
         return new_user
     
-
 @router.post("/favorite/character")
 def set_favorite_character(user_id: int, char_id: int):
     """
@@ -138,7 +136,6 @@ def set_favorite_character(user_id: int, char_id: int):
 
     return {"message": "Favorite character was set"}
 
-
 @router.post("/favorite/franchise")
 def set_favorite_franchise(user_id: int, fran_id: int):
     """
@@ -163,7 +160,6 @@ def set_favorite_franchise(user_id: int, fran_id: int):
         )
 
     return {"message": "Favorite franchise was set"}
-
 
 @router.get("/favorite/character", response_model=User_Favorites)
 def get_favorites(user_id: int):
