@@ -5,7 +5,7 @@ Group Members:
 Brian Kaplan
 Adam Kong
 William Pierce
-Vic Grigory
+Vic Grigoryev
 
 To run your server locally:
 
